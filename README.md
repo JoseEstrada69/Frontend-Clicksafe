@@ -45,6 +45,24 @@ El navegador nunca habla directo con el backend. El panel pide todo a
 (ver `rewrites` en [`next.config.ts`](next.config.ts)). En producción Nginx
 hace lo mismo. Por eso **no se habilita CORS en el backend**.
 
+El contrato de la API está en [`docs/openapi.json`](docs/openapi.json)
+(copia del que exporta el backend) y sus tipos en `src/lib/types.ts`.
+
+## Dónde está cada cosa
+
+| Ruta | Qué hace |
+|---|---|
+| `src/proxy.ts` | Content Security Policy con nonce por petición |
+| `next.config.ts` | rewrites hacia la API y cabeceras de seguridad |
+| `src/lib/session.ts` | dónde viven los tokens (memoria y `sessionStorage`) |
+| `src/lib/api.ts` | cliente axios, Bearer y refresco compartido del token |
+| `src/lib/errors.ts` | `ApiError` y mensajes en español |
+| `src/lib/admin-api.ts` | una función tipada por endpoint de la API |
+| `src/app/(auth)/` | pantallas sin sesión (login, 2FA, recuperar) |
+| `src/app/(panel)/` | pantallas del panel: guardia de sesión y barra lateral |
+| `src/components/` | componentes base con CSS Modules |
+| `docs/seguridad.md` | cada control de seguridad y el ataque que previene |
+
 ## Scripts
 
 | Comando         | Qué hace                                    |
@@ -65,3 +83,10 @@ hace lo mismo. Por eso **no se habilita CORS en el backend**.
   sitio. No hay versión corregida de `braces`, y `npm audit fix --force`
   bajaría `eslint-config-next` a la 14, incompatible con Next 16, por lo que
   **no se debe ejecutar**. Se resuelve en la Fase 6.
+- **`docs/openapi.json` incompleto:** las respuestas no traen esquema, los
+  DTOs están vacíos, faltan los parámetros de consulta de los listados y no
+  existen `POST /admin/admins` ni `/admin/platforms` / `/admin/categories`.
+  Hasta que el backend lo complete, `src/lib/types.ts` solo tiene los tipos
+  de sesión y perfil. Bloquea las fases 3 a 5.
+- **Inicio de sesión provisional:** `/login` solo muestra la marca y los
+  avisos; el formulario real (captcha + 2FA) llega en la Fase 2.

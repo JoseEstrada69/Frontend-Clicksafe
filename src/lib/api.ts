@@ -1,40 +1,27 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { ApiError, MESSAGES, toApiError } from './errors';
+import {
+  endSession,
+  getAccessToken,
+  getRefreshToken,
+  setSession,
+} from './session';
+import type { Tokens } from './types';
 
 // Ruta relativa: mismo origen que el panel. next.config.ts (rewrites) la
 // reenvía al backend, así que no hace falta habilitar CORS en la API.
 export const API_URL = '/api/v1';
-
-// ---------- Guardado ----------
-
-const ACCESS_KEY = 'accessToken';
-const REFRESH_KEY = 'refreshToken';
-
-export function saveTokens(tokens: {
-  accessToken: string;
-  refreshToken?: string;
-}): void {
-  localStorage.setItem(ACCESS_KEY, tokens.accessToken);
-  if (tokens.refreshToken) {
-    localStorage.setItem(REFRESH_KEY, tokens.refreshToken);
-  }
-}
-
-export function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_KEY);
-}
-
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_KEY);
-}
-
-export function clearTokens(): void {
-  localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
-}
+const TIMEOUT_MS = 20_000;
 
 // ---------- Cliente ----------
+// Los componentes no lo usan directo: todo pasa por src/lib/admin-api.ts.
 
-export const api = axios.create({ baseURL: API_URL });
+export const api = axios.create({
+  baseURL: API_URL,
+  timeout: TIMEOUT_MS,
+  // Sin cookies: la sesión viaja solo en el header Authorization
+  withCredentials: false,
+});
 
 // ---------- Envío: el Bearer en cada petición ----------
 
@@ -46,70 +33,69 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ---------- Sesión ----------
-
-export async function login(email: string, password: string): Promise<void> {
-  const { data } = await api.post<{
-    accessToken: string;
-    refreshToken: string;
-  }>('/auth/login', { email, password });
-  saveTokens(data);
-}
-
-export function logout(): void {
-  clearTokens();
-  window.location.replace('/login');
-}
-
-export function errorMessage(e: unknown): string {
-  if (axios.isAxiosError(e)) {
-    if (!e.response) return 'No se pudo conectar con el servidor';
-    const message = (e.response.data as { message?: string | string[] })
-      ?.message;
-    if (message) return Array.isArray(message) ? message.join(', ') : message;
-  }
-  return 'Ocurrió un error inesperado';
-}
-
-// ---------- Refresco: 401 → refresh → reintento ----------
+// ---------- Refresco compartido ----------
+// Si varias peticiones reciben 401 a la vez, todas esperan la MISMA
+// renovación. Si cada una renovara por su cuenta, la segunda mandaría un
+// refresh token ya rotado y el backend lo tomaría como robo (reuso) y
+// revocaría toda la sesión.
 
 let refreshing: Promise<void> | null = null;
 
-function refreshAccessToken(): Promise<void> {
-  // axios "pelón": esta petición no pasa por los interceptores de `api`
-  refreshing ??= axios
-    .post<{ accessToken: string }>(`${API_URL}/auth/refresh`, {
-      refreshToken: getRefreshToken(),
-    })
-    .then(({ data }) => saveTokens(data))
-    .finally(() => {
-      refreshing = null;
-    });
+export function refreshSession(): Promise<void> {
+  refreshing ??= runRefresh().finally(() => {
+    refreshing = null;
+  });
   return refreshing;
 }
 
+async function runRefresh(): Promise<void> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    endSession(null);
+    throw new ApiError({ status: 401 });
+  }
+  try {
+    // axios "pelón": esta petición no pasa por los interceptores de `api`,
+    // así que un 401 aquí no dispara otro refresco ni se reintenta.
+    const { data } = await axios.post<Tokens>(
+      `${API_URL}/auth/refresh`,
+      { refreshToken },
+      { timeout: TIMEOUT_MS, withCredentials: false },
+    );
+    setSession(data);
+  } catch (e) {
+    const error = toApiError(e);
+    // El servidor rechazó el refresh token: la sesión terminó. Si no
+    // respondió (caído) o pidió esperar (429, 5xx), la sesión se conserva y
+    // solo se muestra el error.
+    if (error.status === 400 || error.status === 401) {
+      endSession(MESSAGES.sessionExpired);
+    }
+    throw error;
+  }
+}
+
+// ---------- Respuesta: 401 → refresco → un reintento ----------
+
+type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
 api.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
-    const original = error.config as
-      | (InternalAxiosRequestConfig & { _retry?: boolean })
-      | undefined;
+  async (error: unknown) => {
+    const original =
+      error instanceof AxiosError
+        ? (error.config as RetriableConfig | undefined)
+        : undefined;
+    const is401 = error instanceof AxiosError && error.response?.status === 401;
+    const isAuthRoute = original?.url?.startsWith('/auth/') ?? false;
 
-    const is401 = error.response?.status === 401;
-    const isAuthRoute = original?.url?.startsWith('/auth/');
     if (!is401 || !original || original._retry || isAuthRoute) {
-      return Promise.reject(error);
+      throw toApiError(error);
     }
 
     original._retry = true;
-    try {
-      await refreshAccessToken();
-    } catch (e) {
-      // El servidor rechazó el refresh: la sesión terminó. Si ni siquiera
-      // respondió (está apagado), los tokens se conservan.
-      if (axios.isAxiosError(e) && e.response) logout();
-      return Promise.reject(e);
-    }
+    await refreshSession();
+    // Si el reintento falla, vuelve a pasar por aquí y sale como ApiError
     return api(original);
   },
 );

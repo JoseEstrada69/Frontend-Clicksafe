@@ -1,0 +1,27 @@
+.dialog {
+  width: min(480px, calc(100vw - 32px));
+  padding: calc(var(--cs-space) * 3);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+  color: var(--cs-text);
+}
+
+.dialog::backdrop {
+  background: var(--cs-backdrop);
+}
+
+.title {
+  margin-bottom: calc(var(--cs-space) * 1.5);
+}
+
+.body {
+  margin-bottom: calc(var(--cs-space) * 3);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--cs-space);
+}

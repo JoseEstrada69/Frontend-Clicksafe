@@ -1,52 +1,138 @@
+/* Tokens de diseño de ClickSafe (CLAUDE.md 9.1). Los componentes usan solo
+   estas variables: nada de colores hexadecimales sueltos fuera de aquí. */
+
 :root {
   color-scheme: light dark;
-  font-family: system-ui, sans-serif;
+
+  --cs-background: #f7f5ef;
+  --cs-surface: #ffffff;
+  --cs-border: #e3e1da;
+  --cs-navy: #0e2a47;
+  --cs-on-navy: #ffffff;
+  --cs-sidebar: #0e2a47;
+  --cs-on-sidebar: #ffffff;
+  --cs-blue: #2f5d8a;
+  --cs-gold: #c6a15b;
+  --cs-text: #0e2a47;
+  --cs-text-secondary: #5f6b76;
+  --cs-pending-bg: #f7ecd9;
+  --cs-pending-fg: #7a5a1e;
+  --cs-validated-bg: #f9e3e1;
+  --cs-validated-fg: #b3261e;
+  --cs-rejected-bg: #eceef0;
+  --cs-rejected-fg: #4a5561;
+  --cs-danger: #b3261e;
+  --cs-success: #1e6b3a;
+
+  /* Capas sobre la barra lateral y fondo de los diálogos (iguales en ambos modos) */
+  --cs-sidebar-hover: rgb(255 255 255 / 0.08);
+  --cs-sidebar-active: rgb(255 255 255 / 0.12);
+  --cs-sidebar-divider: rgb(255 255 255 / 0.2);
+  --cs-backdrop: rgb(0 0 0 / 0.45);
+
+  /* Tipografía y medidas (CLAUDE.md 9.2) */
+  --cs-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --cs-font-mono: ui-monospace, monospace;
+  --cs-text-page-title: 1.75rem;
+  --cs-text-section: 1.25rem;
+  --cs-text-body: 1rem;
+  --cs-text-meta: 0.875rem;
+  --cs-space: 8px;
+  --cs-radius-control: 12px;
+  --cs-radius-card: 14px;
+  --cs-radius-pill: 999px;
+  --cs-sidebar-width: 240px;
+  --cs-content-max: 1200px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cs-background: #0b1624;
+    --cs-surface: #16233a;
+    --cs-border: #2a3a52;
+    --cs-navy: #9db9d8;
+    --cs-on-navy: #0b1624;
+    --cs-sidebar: #16233a;
+    --cs-on-sidebar: #e8edf3;
+    --cs-blue: #9db9d8;
+    --cs-gold: #d9b872;
+    --cs-text: #e8edf3;
+    --cs-text-secondary: #a7b2bd;
+    --cs-pending-bg: #3a2c12;
+    --cs-pending-fg: #e8c98a;
+    --cs-validated-bg: #3a1512;
+    --cs-validated-fg: #f2b8b2;
+    --cs-rejected-bg: #26303a;
+    --cs-rejected-fg: #c4ccd4;
+    --cs-danger: #f2b8b2;
+    --cs-success: #8fd1a5;
+  }
+}
+
+/* ---------- Base ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--cs-font);
+  font-size: 100%;
+  line-height: 1.5;
 }
 
 body {
   margin: 0;
-  padding: 2rem 1rem;
+  background: var(--cs-background);
+  color: var(--cs-text);
+  font-size: var(--cs-text-body);
 }
 
-main {
-  max-width: 28rem;
-  margin: 0 auto;
+h1,
+h2,
+h3 {
+  color: var(--cs-navy);
+  line-height: 1.25;
+  margin: 0;
 }
 
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+h1 {
+  font-size: var(--cs-text-page-title);
 }
 
-form {
-  display: grid;
-  gap: 1rem;
+h2 {
+  font-size: var(--cs-text-section);
 }
 
-label {
-  display: grid;
-  gap: 0.25rem;
+a {
+  color: var(--cs-blue);
 }
 
 input,
-button {
+button,
+select,
+textarea {
   font: inherit;
-  padding: 0.5rem 0.75rem;
+  color: inherit;
 }
 
-[role='alert'] {
-  color: #c0392b;
+/* Foco siempre visible (CLAUDE.md 9.2) */
+:focus-visible {
+  outline: 2px solid var(--cs-gold);
+  outline-offset: 2px;
 }
 
-ul {
-  list-style: none;
+/* Texto solo para lectores de pantalla */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   padding: 0;
-}
-
-li {
-  display: grid;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #8884;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
