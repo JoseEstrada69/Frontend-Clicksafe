@@ -1,0 +1,32 @@
+.logo {
+  flex: none;
+}
+
+.small {
+  width: 40px;
+  height: 40px;
+}
+
+.large {
+  width: 72px;
+  height: 72px;
+}
+
+.circle {
+  fill: var(--cs-navy);
+}
+
+.shield {
+  fill: none;
+  stroke: var(--cs-gold);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.check {
+  fill: none;
+  stroke: var(--cs-on-navy);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

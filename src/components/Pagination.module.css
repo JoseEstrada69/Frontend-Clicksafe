@@ -1,0 +1,8 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 2) 0;
+  color: var(--cs-text-secondary);
+}

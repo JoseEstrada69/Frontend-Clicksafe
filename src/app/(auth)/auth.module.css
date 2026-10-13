@@ -1,0 +1,41 @@
+.main {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: calc(var(--cs-space) * 4) 16px;
+}
+
+.panel {
+  display: grid;
+  justify-items: center;
+  gap: calc(var(--cs-space) * 2);
+  width: min(420px, 100%);
+  padding: calc(var(--cs-space) * 4);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+  text-align: center;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--cs-text-secondary);
+}
+
+.noticeRegion {
+  width: 100%;
+}
+
+.notice {
+  margin: 0;
+  padding: calc(var(--cs-space) * 1.5);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-pending-bg);
+  color: var(--cs-pending-fg);
+}
+
+.pending {
+  margin: 0;
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+}

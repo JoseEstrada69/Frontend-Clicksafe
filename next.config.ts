@@ -20,7 +20,30 @@ function apiProxyTarget(): string {
   return url.origin + url.pathname.replace(/\/+$/, '');
 }
 
+// Cabeceras de seguridad para todas las rutas. La CSP no va aquí: necesita
+// un nonce distinto en cada petición y la pone src/proxy.ts. HSTS lo pone
+// Nginx en producción.
+const securityHeaders = [
+  // El navegador no "adivina" tipos: un archivo de texto no se ejecuta como script
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  // Nadie puede meter el panel en un iframe (clickjacking); respaldo de frame-ancestors
+  { key: 'X-Frame-Options', value: 'DENY' },
+  // No revelar rutas internas del panel a sitios externos
+  { key: 'Referrer-Policy', value: 'no-referrer' },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=(), payment=()',
+  },
+  // Una ventana abierta desde el panel no conserva referencia a él
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+];
+
 const nextConfig: NextConfig = {
+  // Sin "X-Powered-By: Next.js": no regalar información del stack
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders }];
+  },
   async rewrites() {
     return [
       {

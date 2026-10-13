@@ -1,0 +1,34 @@
+.shell {
+  min-height: 100vh;
+}
+
+.content {
+  width: 100%;
+  max-width: var(--cs-content-max);
+  margin: 0 auto;
+  padding: calc(var(--cs-space) * 3) 16px;
+  /* Sin scroll horizontal de la página: las tablas llevan su propio scroll */
+  min-width: 0;
+}
+
+.standalone {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  padding: calc(var(--cs-space) * 6) 16px;
+}
+
+.pageHeader {
+  margin-bottom: calc(var(--cs-space) * 3);
+}
+
+@media (min-width: 900px) {
+  .shell {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .content {
+    flex: 1;
+    padding: calc(var(--cs-space) * 4);
+  }
+}

@@ -1,0 +1,10 @@
+.card {
+  padding: calc(var(--cs-space) * 3);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+}
+
+.title {
+  margin-bottom: calc(var(--cs-space) * 2);
+}

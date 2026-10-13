@@ -1,0 +1,27 @@
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 2);
+  border: 1px solid var(--cs-danger);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+}
+
+.message {
+  margin: 0;
+  color: var(--cs-danger);
+  font-weight: 600;
+}
+
+.support {
+  margin: var(--cs-space) 0 0;
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+}
+
+.support code {
+  font-family: var(--cs-font-mono);
+}

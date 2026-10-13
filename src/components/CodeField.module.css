@@ -1,0 +1,5 @@
+.code input {
+  font-family: var(--cs-font-mono);
+  font-size: var(--cs-text-section);
+  letter-spacing: 0.3em;
+}
