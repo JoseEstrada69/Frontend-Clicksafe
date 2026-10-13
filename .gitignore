@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Pruebas
+coverage/
+
+# Variables de entorno (solo se versiona la plantilla)
+.env*
+!.env.example
+
+# Llaves y certificados
+*.pem
+*.key
+
+# Archivos comprimidos
+*.zip
+
+# Basura del sistema operativo
+.DS_Store
+__MACOSX/
+Thumbs.db
+
+# Logs
+npm-debug.log*

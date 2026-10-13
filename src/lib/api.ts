@@ -1,7 +1,8 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+// Ruta relativa: mismo origen que el panel. next.config.ts (rewrites) la
+// reenvía al backend, así que no hace falta habilitar CORS en la API.
+export const API_URL = '/api/v1';
 
 // ---------- Guardado ----------
 
