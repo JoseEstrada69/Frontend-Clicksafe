@@ -9,8 +9,8 @@
   display: grid;
   justify-items: center;
   gap: calc(var(--cs-space) * 2);
-  width: min(420px, 100%);
-  padding: calc(var(--cs-space) * 4);
+  width: min(440px, 100%);
+  padding: calc(var(--cs-space) * 4) calc(var(--cs-space) * 3);
   border: 1px solid var(--cs-border);
   border-radius: var(--cs-radius-card);
   background: var(--cs-surface);
@@ -34,8 +34,69 @@
   color: var(--cs-pending-fg);
 }
 
-.pending {
+.success {
+  margin: 0;
+  padding: calc(var(--cs-space) * 1.5);
+  border: 1px solid var(--cs-success);
+  border-radius: var(--cs-radius-control);
+  color: var(--cs-success);
+}
+
+.error {
+  margin: 0;
+  padding: calc(var(--cs-space) * 1.5);
+  border: 1px solid var(--cs-danger);
+  border-radius: var(--cs-radius-control);
+  color: var(--cs-danger);
+  font-weight: 600;
+}
+
+.form {
+  display: grid;
+  gap: calc(var(--cs-space) * 2);
+  width: 100%;
+  text-align: left;
+}
+
+.submit {
+  width: 100%;
+}
+
+.help {
   margin: 0;
   color: var(--cs-text-secondary);
   font-size: var(--cs-text-meta);
+  text-align: left;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(var(--cs-space) * 2);
+  font-size: var(--cs-text-meta);
+}
+
+/* QR del 2FA: fondo blanco siempre, para que las apps lo lean en modo oscuro */
+.qr {
+  width: 200px;
+  height: 200px;
+  padding: var(--cs-space);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-qr-background);
+}
+
+.secret {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cs-space);
+  width: 100%;
+}
+
+.secret code {
+  font-family: var(--cs-font-mono);
+  overflow-wrap: anywhere;
 }

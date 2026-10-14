@@ -16,12 +16,24 @@ export const MESSAGES = {
   server: 'Algo salió mal de nuestro lado. Inténtalo más tarde.',
   unknown: 'No se pudo completar la acción.',
   adminOnly: 'Este panel es solo para administradores.',
+  // Autenticación (CLAUDE.md 7.4)
+  wrongCredentials: 'Correo o contraseña incorrectos.',
+  wrongTotp: 'Código incorrecto. Revisa tu app de autenticación.',
+  mfaExpired: 'Tu verificación expiró. Inicia sesión de nuevo.',
+  waitNewCode: 'Espera a que tu app muestre un código nuevo',
+  idleLogout: 'Cerramos tu sesión por inactividad.',
+  forgotSent: 'Si el correo está registrado, recibirás un código de 8 dígitos.',
+  passwordUpdated: 'Contraseña actualizada. Inicia sesión.',
+  captchaInvalid: 'No pudimos verificar la solicitud. Inténtalo de nuevo.',
 } as const;
 
 const CODE_MESSAGES: Record<string, string> = {
-  CAPTCHA_INVALID: 'No pudimos verificar la solicitud. Inténtalo de nuevo.',
+  CAPTCHA_INVALID: MESSAGES.captchaInvalid,
+  // Códigos locales (no vienen del servidor)
+  MFA_EXPIRED: MESSAGES.mfaExpired,
   INVALID_CODE: 'Código incorrecto o expirado.',
   PASSWORD_WEAK: 'Esa contraseña es muy común. Elige otra.',
+  INVALID_CURRENT_PASSWORD: 'La contraseña actual no es correcta.',
   OWN_REPORT: 'No puedes revisar un reporte que tú creaste.',
   REPORT_NOT_EDITABLE: 'Este reporte ya fue revisado por otro administrador.',
   CATALOG_INACTIVE: 'Ese elemento del catálogo está desactivado.',

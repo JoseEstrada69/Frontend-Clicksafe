@@ -8,6 +8,8 @@ export interface SessionContextValue {
   me: Me;
   /** Cierra la sesión en el servidor, limpia los tokens y va al login. */
   signOut: () => Promise<void>;
+  /** Reemplaza los datos del admin con los que confirmó el servidor. */
+  replaceMe: (me: Me) => void;
 }
 
 export const SessionContext = createContext<SessionContextValue | null>(null);

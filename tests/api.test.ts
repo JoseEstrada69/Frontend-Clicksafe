@@ -122,6 +122,117 @@ describe('refresco compartido (api.ts)', () => {
     expect(refreshCalls).toBe(1);
   });
 
+  it('contraseña actual incorrecta (400 INVALID_CURRENT_PASSWORD) → mensaje propio, sin refresco', async () => {
+    let refreshCalls = 0;
+    let passwordCalls = 0;
+    const lib = await loadWithFakeApi((config) => {
+      if (isRefresh(config.url)) {
+        refreshCalls += 1;
+        return { status: 200, data: NEW_TOKENS };
+      }
+      passwordCalls += 1;
+      return {
+        status: 400,
+        data: {
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Contraseña actual incorrecta (INVALID_CURRENT_PASSWORD)',
+          requestId: '5b1e2c2a-1234-4a5b-8c9d-0e1f2a3b4c5d',
+          code: 'INVALID_CURRENT_PASSWORD',
+        },
+      };
+    });
+    lib.setSession({ accessToken: 'old', refreshToken: 'r1', expiresIn: 900 });
+
+    const error = (await lib
+      .changePassword({ passwordActual: 'mala', nuevaPassword: 'nueva12345' })
+      .catch((e: unknown) => e)) as ApiError;
+
+    expect(error).toBeInstanceOf(lib.ApiError);
+    expect(error.status).toBe(400);
+    expect(error.code).toBe('INVALID_CURRENT_PASSWORD');
+    expect(error.userMessage).toBe('La contraseña actual no es correcta.');
+    expect(passwordCalls).toBe(1);
+    expect(refreshCalls).toBe(0);
+    expect(lib.getAccessToken()).toBe('old');
+  });
+
+  it('PATCH /me/password renueva ANTES de enviar si el token vence en menos de 1 minuto', async () => {
+    const order: string[] = [];
+    let passwordAuth: unknown;
+    const lib = await loadWithFakeApi((config) => {
+      if (isRefresh(config.url)) {
+        order.push('refresh');
+        return { status: 200, data: NEW_TOKENS };
+      }
+      order.push('password');
+      passwordAuth = config.headers.Authorization;
+      return { status: 204 };
+    });
+    // Vence en 30 s
+    lib.setSession({ accessToken: 'old', refreshToken: 'r1', expiresIn: 30 });
+
+    await lib.changePassword({ passwordActual: 'actual123', nuevaPassword: 'nueva12345' });
+
+    expect(order).toEqual(['refresh', 'password']);
+    expect(passwordAuth).toBe('Bearer new');
+  });
+
+  it('con el token vigente no renueva antes de enviar', async () => {
+    const order: string[] = [];
+    const lib = await loadWithFakeApi((config) => {
+      order.push(isRefresh(config.url) ? 'refresh' : 'password');
+      return { status: 204 };
+    });
+    lib.setSession({ accessToken: 'old', refreshToken: 'r1', expiresIn: 900 });
+
+    await lib.changePassword({ passwordActual: 'actual123', nuevaPassword: 'nueva12345' });
+
+    expect(order).toEqual(['password']);
+  });
+
+  it('si la renovación previa falla, la contraseña NO se envía', async () => {
+    const order: string[] = [];
+    const lib = await loadWithFakeApi((config) => {
+      order.push(isRefresh(config.url) ? 'refresh' : 'password');
+      return isRefresh(config.url) ? 'network' : { status: 204 };
+    });
+    lib.setSession({ accessToken: 'old', refreshToken: 'r1', expiresIn: 30 });
+
+    const error = await lib
+      .changePassword({ passwordActual: 'actual123', nuevaPassword: 'nueva12345' })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(lib.ApiError);
+    expect(order).toEqual(['refresh']);
+  });
+
+  it('defensa: un 401 en PATCH /me/password tampoco refresca ni reintenta', async () => {
+    let refreshCalls = 0;
+    let passwordCalls = 0;
+    const lib = await loadWithFakeApi((config) => {
+      if (isRefresh(config.url)) {
+        refreshCalls += 1;
+        return { status: 200, data: NEW_TOKENS };
+      }
+      passwordCalls += 1;
+      return { status: 401 };
+    });
+    lib.setSession({ accessToken: 'old', refreshToken: 'r1', expiresIn: 900 });
+
+    const error = await lib
+      .changePassword({ passwordActual: 'mala', nuevaPassword: 'nueva12345' })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(lib.ApiError);
+    expect((error as ApiError).status).toBe(401);
+    expect(passwordCalls).toBe(1);
+    expect(refreshCalls).toBe(0);
+    // La sesión sigue intacta
+    expect(lib.getAccessToken()).toBe('old');
+    expect(storage.get(REFRESH_KEY)).toBe('r1');
+  });
+
   it('un 401 en rutas /auth/* no dispara el refresco', async () => {
     let refreshCalls = 0;
     const lib = await loadWithFakeApi((config) => {

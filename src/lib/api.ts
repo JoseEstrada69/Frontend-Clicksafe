@@ -25,8 +25,26 @@ export const api = axios.create({
 
 // ---------- Envío: el Bearer en cada petición ----------
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /**
+     * Token explícito para esta petición en lugar del access token de la
+     * sesión: el mfaToken en /auth/2fa/setup y /enable, o el token de un
+     * usuario normal que se revoca de inmediato (CLAUDE.md 7.4).
+     */
+    authToken?: string;
+    /**
+     * Un 401 de esta petición NO significa "sesión vencida": no se refresca
+     * el token ni se reintenta. Hoy lo usa PATCH /me/password, para que un
+     * reintento nunca vuelva a enviar la contraseña actual.
+     */
+    skipAuthRefresh?: boolean;
+  }
+}
+
 api.interceptors.request.use((config) => {
-  const token = getAccessToken();
+  // Se recalcula en cada intento: tras un refresco, el reintento lleva el token nuevo
+  const token = config.authToken ?? getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -89,7 +107,13 @@ api.interceptors.response.use(
     const is401 = error instanceof AxiosError && error.response?.status === 401;
     const isAuthRoute = original?.url?.startsWith('/auth/') ?? false;
 
-    if (!is401 || !original || original._retry || isAuthRoute) {
+    if (
+      !is401 ||
+      !original ||
+      original._retry ||
+      isAuthRoute ||
+      original.skipAuthRefresh
+    ) {
       throw toApiError(error);
     }
 

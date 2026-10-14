@@ -62,5 +62,12 @@ export async function loadWithFakeApi(handler: FakeHandler) {
   const session = await import('@/lib/session');
   const adminApi = await import('@/lib/admin-api');
   const errors = await import('@/lib/errors');
-  return { ...api, ...session, ...adminApi, ApiError: errors.ApiError };
+  const authFlow = await import('@/lib/auth-flow');
+  return {
+    ...api,
+    ...session,
+    ...adminApi,
+    ...authFlow,
+    ApiError: errors.ApiError,
+  };
 }
