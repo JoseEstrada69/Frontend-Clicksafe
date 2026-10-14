@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Skeleton } from '@/components/Skeleton';
 import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { SessionContext } from '@/hooks/useSession';
-import { getMe, logout } from '@/lib/admin-api';
+import { getAdminReports, getMe, logout } from '@/lib/admin-api';
 import { refreshSession } from '@/lib/api';
 import { MESSAGES, toApiError, type ApiError } from '@/lib/errors';
 import {
@@ -108,10 +108,28 @@ export default function PanelLayout({ children }: LayoutProps<'/'>) {
     setState({ status: 'ready', me });
   }, []);
 
+  // Contador de reportes pendientes en la barra lateral. Basta con el
+  // `total` de una página de 1 elemento. Es solo informativo: si falla, no
+  // se muestra.
+  const ready = state.status === 'ready';
+  const [pendingReports, setPendingReports] = useState<number | null>(null);
+  const [countersVersion, setCountersVersion] = useState(0);
+  useEffect(() => {
+    if (!ready) return;
+    const controller = new AbortController();
+    getAdminReports({ page: 1, limit: 1, estado: 'pendiente' }, controller.signal)
+      .then((page) => setPendingReports(page.total))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ready, countersVersion]);
+  const refreshCounters = useCallback(() => setCountersVersion((v) => v + 1), []);
+
   const session = useMemo(
     () =>
-      state.status === 'ready' ? { me: state.me, signOut, replaceMe } : null,
-    [state, signOut, replaceMe],
+      state.status === 'ready'
+        ? { me: state.me, signOut, replaceMe, refreshCounters }
+        : null,
+    [state, signOut, replaceMe, refreshCounters],
   );
 
   if (state.status === 'error') {
@@ -135,6 +153,7 @@ export default function PanelLayout({ children }: LayoutProps<'/'>) {
       <div className={styles.shell}>
         <Sidebar
           adminName={session.me.nombre}
+          counts={{ '/reportes': pendingReports }}
           signingOut={signingOut}
           onSignOut={signOut}
         />

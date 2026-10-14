@@ -1,6 +1,14 @@
 import { api, refreshSession } from './api';
 import { accessTokenExpiresSoon, getAccessToken } from './session';
 import type {
+  AdminReport,
+  AdminReportDetail,
+  AdminReportsQuery,
+  AdminStats,
+  GenericMessage,
+  Page,
+  ReviewDecision,
+  ReviewReportBody,
   CaptchaChallenge,
   ChangePasswordBody,
   ForgotPasswordBody,
@@ -75,6 +83,60 @@ export async function logout(accessToken?: string): Promise<void> {
 /** POST /auth/logout-all — revoca todas las sesiones del usuario (204). */
 export async function logoutAll(): Promise<void> {
   await api.post('/auth/logout-all');
+}
+
+// ---------- Dashboard y reportes ----------
+
+/** GET /admin/stats. */
+export async function getAdminStats(signal?: AbortSignal): Promise<AdminStats> {
+  const { data } = await api.get<AdminStats>('/admin/stats', { signal });
+  return data;
+}
+
+/** GET /admin/reports — cola de revisión (por defecto, pendientes). */
+export async function getAdminReports(
+  query: AdminReportsQuery,
+  signal?: AbortSignal,
+): Promise<Page<AdminReport>> {
+  const { data } = await api.get<Page<AdminReport>>('/admin/reports', {
+    params: query,
+    signal,
+  });
+  return data;
+}
+
+/** GET /admin/reports/:id — detalle con autor real y evidencias firmadas. */
+export async function getAdminReport(
+  id: number,
+  signal?: AbortSignal,
+): Promise<AdminReportDetail> {
+  const { data } = await api.get<AdminReportDetail>(`/admin/reports/${id}`, {
+    signal,
+  });
+  return data;
+}
+
+/**
+ * POST /admin/reports/:id/review. El comentario se recorta y, si queda
+ * vacío, no se manda (es opcional; máx. 500).
+ */
+export async function reviewReport(
+  id: number,
+  decision: ReviewDecision,
+  comentario?: string,
+): Promise<void> {
+  const body: ReviewReportBody = { decision };
+  const text = comentario?.trim();
+  if (text) body.comentario = text;
+  await api.post<GenericMessage>(`/admin/reports/${id}/review`, body);
+}
+
+/** DELETE /admin/reports/:id/evidences/:evidenceId (204). */
+export async function deleteEvidence(
+  reportId: number,
+  evidenceId: number,
+): Promise<void> {
+  await api.delete(`/admin/reports/${reportId}/evidences/${evidenceId}`);
 }
 
 // ---------- Mi cuenta ----------

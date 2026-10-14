@@ -149,28 +149,6 @@ export interface EvidenceRef {
   url: string;
 }
 
-/** `ReportResponse` (GET /reports/:id). */
-export interface Report {
-  id: number;
-  titulo: string;
-  descripcion: string;
-  urlPublicacion: string;
-  plataforma: IdName;
-  plataformaOtra: string | null;
-  categoria: IdName;
-  estado: ReportState;
-  anonimo: boolean;
-  autor: { nombre: string };
-  esMio: boolean;
-  likedByMe: boolean;
-  totalLikes: number;
-  totalComentarios: number;
-  evidencias: EvidenceRef[];
-  revision: ReportRevision | null;
-  fechaCreacion: string;
-  fechaActualizacion: string;
-}
-
 /** `AdminUserRefResponse`: autor real, aunque el reporte o comentario sea anónimo. */
 export interface AdminUserRef {
   nombre: string;
@@ -195,11 +173,28 @@ export interface AdminReport {
   fechaActualizacion: string;
 }
 
-/** Query de GET /admin/reports. */
+/**
+ * `AdminReportDetailResponse` (GET /admin/reports/:id): autor real,
+ * evidencias firmadas (15 min), revisión si ya la tiene y `esMio`.
+ */
+export interface AdminReportDetail extends AdminReport {
+  revision: ReportRevision | null;
+  /** El reporte lo creó el admin actual: no puede revisarlo. */
+  esMio: boolean;
+  totalComentarios: number;
+}
+
+/** Filtro de la cola: un estado o `todos` (sin filtro). */
+export type AdminReportsFilter = ReportState | 'todos';
+
+/**
+ * Query de GET /admin/reports. Sin `estado` la API devuelve los pendientes;
+ * `todos` quita el filtro. Orden: del más antiguo al más nuevo (lo hace la API).
+ */
 export interface AdminReportsQuery {
   page: number;
   limit: number;
-  estado?: ReportState;
+  estado?: AdminReportsFilter;
 }
 
 /** `ReviewReportDto`. `comentario` máx. 500. */
@@ -305,9 +300,12 @@ export interface UpdateCategoryBody {
 
 /** `AdminStatsResponse` (GET /admin/stats). */
 export interface AdminStats {
+  /** Las plataformas `esOtra` vienen agrupadas como "Otra". */
   porPlataforma: { plataforma: string; total: number }[];
   porCategoria: { categoria: string; total: number }[];
   porEstado: { estado: ReportState; total: number }[];
+  /** Últimos 12 meses en UTC, del más antiguo al más reciente; `mes` = "YYYY-MM". */
+  porMes: { mes: string; total: number }[];
 }
 
 // ---------- Bitácora ----------

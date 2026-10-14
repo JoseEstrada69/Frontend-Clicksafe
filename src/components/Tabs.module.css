@@ -1,0 +1,23 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cs-space);
+  margin-bottom: calc(var(--cs-space) * 2);
+  border-bottom: 1px solid var(--cs-border);
+}
+
+.tab {
+  min-height: 44px;
+  padding: 0 calc(var(--cs-space) * 2);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--cs-text-secondary);
+  cursor: pointer;
+}
+
+.selected {
+  border-bottom-color: var(--cs-gold);
+  color: var(--cs-navy);
+  font-weight: 600;
+}

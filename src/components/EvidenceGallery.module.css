@@ -1,0 +1,78 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: calc(var(--cs-space) * 2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: var(--cs-space);
+}
+
+.thumbButton {
+  padding: 0;
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-background);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.unavailable {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1px dashed var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+  text-align: center;
+}
+
+.empty {
+  margin: 0;
+  color: var(--cs-text-secondary);
+}
+
+.error {
+  margin: 0 0 var(--cs-space);
+  color: var(--cs-danger);
+  font-weight: 600;
+}
+
+.viewer {
+  width: min(960px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: calc(var(--cs-space) * 2);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+}
+
+.viewer::backdrop {
+  background: var(--cs-backdrop);
+}
+
+.full {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 160px);
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.viewerActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(var(--cs-space) * 2);
+}

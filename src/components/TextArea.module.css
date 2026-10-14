@@ -1,0 +1,25 @@
+.field {
+  display: grid;
+  gap: calc(var(--cs-space) / 2);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.textarea {
+  width: 100%;
+  padding: calc(var(--cs-space) * 1.5);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-surface);
+  resize: vertical;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--cs-space);
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+}

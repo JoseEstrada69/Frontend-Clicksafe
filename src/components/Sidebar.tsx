@@ -23,11 +23,18 @@ function isActive(pathname: string, href: string): boolean {
 
 interface SidebarProps {
   adminName: string;
+  /** Contadores junto a los enlaces (por ejemplo, reportes pendientes). */
+  counts?: Partial<Record<string, number | null>>;
   signingOut: boolean;
   onSignOut: () => void;
 }
 
-export function Sidebar({ adminName, signingOut, onSignOut }: SidebarProps) {
+export function Sidebar({
+  adminName,
+  counts = {},
+  signingOut,
+  onSignOut,
+}: SidebarProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
@@ -58,6 +65,7 @@ export function Sidebar({ adminName, signingOut, onSignOut }: SidebarProps) {
           <ul className={styles.links}>
             {LINKS.map(({ href, label }) => {
               const active = isActive(pathname, href);
+              const count = counts[href];
               return (
                 <li key={href}>
                   <Link
@@ -67,6 +75,12 @@ export function Sidebar({ adminName, signingOut, onSignOut }: SidebarProps) {
                     onClick={() => setMenuOpen(false)}
                   >
                     {label}
+                    {typeof count === 'number' && count > 0 && (
+                      <span className={styles.count}>
+                        {count > 99 ? '99+' : count}
+                        <span className="visually-hidden"> pendientes</span>
+                      </span>
+                    )}
                   </Link>
                 </li>
               );

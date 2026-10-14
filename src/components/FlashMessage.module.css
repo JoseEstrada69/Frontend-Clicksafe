@@ -1,0 +1,28 @@
+.flash {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--cs-space) * 2);
+  margin-bottom: calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 1.5) calc(var(--cs-space) * 2);
+  border: 1px solid var(--cs-success);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+}
+
+.text {
+  margin: 0;
+  color: var(--cs-success);
+  font-weight: 600;
+}
+
+.close {
+  min-width: 32px;
+  min-height: 32px;
+  border: 0;
+  border-radius: var(--cs-radius-control);
+  background: transparent;
+  color: var(--cs-text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+}

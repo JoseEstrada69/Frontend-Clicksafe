@@ -63,11 +63,13 @@ export async function loadWithFakeApi(handler: FakeHandler) {
   const adminApi = await import('@/lib/admin-api');
   const errors = await import('@/lib/errors');
   const authFlow = await import('@/lib/auth-flow');
+  const review = await import('@/lib/review');
   return {
     ...api,
     ...session,
     ...adminApi,
     ...authFlow,
+    ...review,
     ApiError: errors.ApiError,
   };
 }

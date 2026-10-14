@@ -1,0 +1,43 @@
+.layout {
+  display: grid;
+  gap: calc(var(--cs-space) * 3);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: calc(var(--cs-space) * 2);
+}
+
+.shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--cs-space) * 1.5);
+}
+
+.shortcut {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 calc(var(--cs-space) * 2);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-surface);
+  color: var(--cs-navy);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.shortcut:hover {
+  border-color: var(--cs-navy);
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: calc(var(--cs-space) * 2);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}

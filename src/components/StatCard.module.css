@@ -1,0 +1,45 @@
+.card {
+  display: grid;
+  gap: calc(var(--cs-space) / 2);
+  padding: calc(var(--cs-space) * 2.5);
+  border: 1px solid var(--cs-border);
+  border-left-width: 4px;
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+  color: var(--cs-text);
+}
+
+.link {
+  text-decoration: none;
+}
+
+.link:hover {
+  border-color: var(--cs-navy);
+}
+
+.label {
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+}
+
+.value {
+  color: var(--cs-navy);
+  font-size: var(--cs-text-page-title);
+  font-weight: 700;
+}
+
+.default {
+  border-left-color: var(--cs-navy);
+}
+
+.pending {
+  border-left-color: var(--cs-gold);
+}
+
+.validated {
+  border-left-color: var(--cs-validated-fg);
+}
+
+.rejected {
+  border-left-color: var(--cs-rejected-fg);
+}

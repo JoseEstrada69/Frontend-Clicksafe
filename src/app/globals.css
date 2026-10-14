@@ -90,6 +90,11 @@ body {
   background: var(--cs-background);
   color: var(--cs-text);
   font-size: var(--cs-text-body);
+  /* Solo se parte una cadena larga sin espacios (una URL) si no cabe; las
+     palabras normales nunca se cortan a la mitad. `anywhere` se reserva para
+     URLs: en tablas y flex encoge las columnas porque permite cortar en
+     cualquier letra. */
+  overflow-wrap: break-word;
 }
 
 h1,

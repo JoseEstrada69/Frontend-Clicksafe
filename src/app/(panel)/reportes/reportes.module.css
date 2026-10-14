@@ -1,0 +1,12 @@
+.title {
+  color: var(--cs-navy);
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+
+.author {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--cs-space) / 2);
+}
