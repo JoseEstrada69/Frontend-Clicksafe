@@ -2,9 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Sidebar } from '@/components/Sidebar';
 import { Skeleton } from '@/components/Skeleton';
+import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { SessionContext } from '@/hooks/useSession';
 import { getMe, logout } from '@/lib/admin-api';
 import { refreshSession } from '@/lib/api';
@@ -83,19 +85,33 @@ export default function PanelLayout({ children }: LayoutProps<'/'>) {
     setAttempt((n) => n + 1);
   }, []);
 
-  const signOut = useCallback(async () => {
+  // Cerrar sesión (CLAUDE.md 7.1): revocar en el servidor, borrar access
+  // (memoria) y refresh (sessionStorage) y salir de (panel), lo que desmonta
+  // y descarta todo el estado de React.
+  const closeSession = useCallback(async (notice: string | null) => {
     setSigningOut(true);
     try {
       await logout();
     } catch {
       // Aunque el servidor no responda, la sesión se borra de este navegador
     }
-    endSession(null);
+    endSession(notice);
+  }, []);
+
+  const signOut = useCallback(() => closeSession(null), [closeSession]);
+
+  const idle = useIdleLogout(state.status === 'ready', () => {
+    void closeSession(MESSAGES.idleLogout);
+  });
+
+  const replaceMe = useCallback((me: Me) => {
+    setState({ status: 'ready', me });
   }, []);
 
   const session = useMemo(
-    () => (state.status === 'ready' ? { me: state.me, signOut } : null),
-    [state, signOut],
+    () =>
+      state.status === 'ready' ? { me: state.me, signOut, replaceMe } : null,
+    [state, signOut, replaceMe],
   );
 
   if (state.status === 'error') {
@@ -124,6 +140,18 @@ export default function PanelLayout({ children }: LayoutProps<'/'>) {
         />
         <main className={styles.content}>{children}</main>
       </div>
+      <ConfirmDialog
+        open={idle.warning}
+        title="¿Sigues ahí?"
+        confirmLabel="Seguir conectado"
+        cancelLabel="Cerrar sesión"
+        onConfirm={idle.stayConnected}
+        onCancel={signOut}
+      >
+        <p>
+          Por seguridad, cerraremos tu sesión en 1 minuto por inactividad.
+        </p>
+      </ConfirmDialog>
     </SessionContext.Provider>
   );
 }

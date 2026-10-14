@@ -46,6 +46,46 @@ cada fase.
 | `ConfirmDialog` para acciones destructivas | Acciones irreversibles por un clic accidental | V2 Validation and Business Logic | `src/components/ConfirmDialog.tsx` |
 | Sin `style={{}}` ni colores sueltos: CSS Modules | Permite mantener `style-src` sin `'unsafe-inline'` (un estilo inyectado también puede filtrar datos con selectores CSS) | V3 Web Frontend Security | `src/components/*.module.css` |
 
+## Fase 2 — Autenticación
+
+| Control | Ataque que previene | ASVS 5.0 | Archivo |
+|---|---|---|---|
+| **Captcha ALTCHA** (proof-of-work con SHA-256 en un Web Worker) en login, olvidé y restablecer contraseña | **Fuerza bruta / credential stuffing**: un bot que prueba miles de contraseñas tiene que gastar cómputo en cada intento, y el servidor acepta cada reto una sola vez y por 5 minutos | V6 Authentication | `src/lib/captcha*.ts` |
+| Reintento del captcha **una sola vez** si el servidor responde `CAPTCHA_INVALID` | Bucles de peticiones automáticas contra el login | V6 Authentication | `src/lib/captcha.ts` |
+| El solver rechaza algoritmos distintos de SHA-256 y `maxnumber` absurdos | Que un reto manipulado congele la computadora del admin | V2 Validation and Business Logic | `src/lib/captcha-solver.ts` |
+| **Mismo mensaje** para contraseña incorrecta, cuenta bloqueada o suspendida ("Correo o contraseña incorrectos.") | **Enumeración de cuentas**: distinguir los casos le diría al atacante qué correos existen o cuáles bloqueó | V6 Authentication | `src/app/(auth)/login/page.tsx` |
+| "¿Olvidaste tu contraseña?" responde siempre lo mismo | Enumeración de correos registrados | V6 Authentication | `src/app/(auth)/recuperar/page.tsx` |
+| **`mfaToken` solo en memoria**, con vencimiento local de 5 minutos | Que el token intermedio del 2FA quede en almacenamiento del navegador o en la URL y se reutilice; al recargar la página se pierde a propósito | V6 Authentication · V7 Session Management | `src/lib/session.ts` |
+| **Usuario normal → `POST /auth/logout` con su propio token** y no se guarda nada | Que un usuario sin rol de admin use el panel; que la sesión que emitió el servidor quede viva | V8 Authorization | `src/lib/auth-flow.ts` |
+| `setup`/`enable` mandan el `mfaToken` como Bearer de **esa** petición (`authToken`), sin tocar la sesión | Mezclar el token del 2FA con el de sesión, o reintentar con un token viejo tras un refresco | V7 Session Management | `src/lib/api.ts`, `src/lib/admin-api.ts` |
+| `/auth/2fa/setup` se pide **una sola vez** por `mfaToken` | Que una segunda llamada (React StrictMode) cambie el secreto en el servidor y el QR mostrado quede inválido | V6 Authentication | `src/lib/auth-flow.ts` |
+| QR aceptado solo si es `data:image/png;base64,…`; clave manual solo si es Base32 de una URI `otpauth:` | Que un valor inesperado termine en un `src` (por ejemplo `javascript:`) o se muestre texto arbitrario | V1 Encoding and Sanitization | `src/lib/mfa-setup.ts` |
+| Después de activar el 2FA se pide un **código nuevo** | El servidor no acepta dos veces el mismo código TOTP (**repetición**); el panel lo explica en lugar de fallar | V6 Authentication | `src/app/(auth)/login/verificar/page.tsx` |
+| **Cierre por inactividad**: aviso a los 14 min, cierre a los 15 con `POST /auth/logout`; con el aviso visible hay que pulsar "Seguir conectado"; se revisa al volver a la pestaña | **Sesión desatendida** en una computadora compartida (laboratorio): cualquiera que se siente podría validar o rechazar reportes | V7 Session Management | `src/lib/idle.ts`, `src/hooks/useIdleLogout.ts` |
+| **Cerrar sesión** revoca en el servidor, borra memoria y `sessionStorage` y desmonta el estado de React | Que la sesión siga válida en el servidor o que queden datos del admin en la página | V7 Session Management | `src/app/(panel)/layout.tsx` |
+| **Cerrar sesión en todos los dispositivos** (con confirmación) | Sesiones olvidadas en otras computadoras, o una sesión robada | V7 Session Management | `src/app/(panel)/cuenta/page.tsx` |
+| Contraseñas de **8 a 128** caracteres, sin reglas de símbolos; `autoComplete` correcto; botón mostrar/ocultar | Contraseñas predecibles por reglas de composición; permite usar el gestor de contraseñas (contraseñas largas y únicas) | V6 Authentication | `src/lib/password.ts`, `src/components/PasswordField.tsx` |
+| Botones deshabilitados con "Verificando…" / "Enviando…" mientras hay una petición | Dobles envíos (dos captchas, dos códigos TOTP gastados) | V2 Validation and Business Logic | páginas de `(auth)` |
+| Avisos ("Tu verificación expiró…", "Contraseña actualizada…") en memoria, no en la URL | Mensajes falsificados por enlace para engañar al admin | V3 Web Frontend Security | `src/lib/session.ts` |
+| **Página 404 propia** con CSS Modules | La 404 por defecto de Next usa `style=""`, que la CSP bloquea; evita tener que relajar `style-src` | V3 Web Frontend Security | `src/app/not-found.tsx` |
+| QR con `<img>` y **no** con `next/image` | `next/image` agrega `style="color:transparent"`, que la CSP bloquea | V3 Web Frontend Security | `src/app/(auth)/login/configurar-2fa/page.tsx` |
+| `PATCH /me/password` **sin refresco ni reintento** ante 401 (`skipAuthRefresh`), como defensa | La contraseña actual incorrecta llega como 400 `INVALID_CURRENT_PASSWORD`. Si algún 401 se tratara como sesión vencida, el panel renovaría el token y **volvería a enviar la contraseña actual** (un segundo intento que el admin no hizo) | V6 Authentication · V7 Session Management | `src/lib/api.ts`, `src/lib/admin-api.ts` |
+| `PATCH /me/password` **renueva el token antes de enviar** si vence en menos de 1 minuto; si la renovación falla, la contraseña no se envía | Complementa al anterior: como esa petición no se reintenta, se evita que falle solo porque el access token venció justo en ese momento, sin enviar nunca la contraseña dos veces | V7 Session Management | `src/lib/admin-api.ts`, `src/lib/session.ts` |
+
+### Excepción a ESLint: `@next/next/no-img-element` en el QR del 2FA
+
+Única regla desactivada en el proyecto, **solo en una línea** de
+`src/app/(auth)/login/configurar-2fa/page.tsx`, con aprobación del equipo.
+
+- **Por qué:** la sección 7.4 del CLAUDE.md pide mostrar el QR con `<img>`.
+  La alternativa que sugiere la regla, `next/image`, agrega el atributo
+  `style="color:transparent"`, que nuestra CSP bloquea (`style-src` sin
+  `'unsafe-inline'`), y habría que relajarla.
+- **Por qué es seguro:** la regla es de rendimiento (optimizar imágenes
+  remotas), no de seguridad. El QR es un `data:` URL generado por nuestra API
+  y se valida antes de mostrarse (`safeQrDataUrl`: solo
+  `data:image/png;base64,…`).
+
 ## Cómo comprobarlo
 
 ```sh
@@ -68,8 +108,10 @@ Revisión en el navegador (Opera GX, Chromium), 13 de octubre de 2026:
   desarrollo de Next (indicador y overlay de errores) y de extensiones del
   navegador que intentan insertar `<style>` sin el nonce. **No hay bloqueos
   de `script-src` ni de archivos del panel.**
-- **Producción (`npm run build` + `npm start`, ventana privada):** pendiente
-  de registrar el resultado.
+- **Producción (`npm run build` + `npm start`, ventana privada en Opera GX):
+  0 avisos de CSP en `/login`.** Esto confirma que los bloqueos de
+  desarrollo venían de las herramientas de Next y de las extensiones, no del
+  panel.
 
 **Por qué no se relaja la CSP:** esos estilos no son parte del panel. Las
 herramientas de desarrollo de Next no se incluyen en la compilación de

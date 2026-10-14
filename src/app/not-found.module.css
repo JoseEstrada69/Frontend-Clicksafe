@@ -1,0 +1,14 @@
+.main {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: calc(var(--cs-space) * 2);
+  min-height: 100vh;
+  padding: calc(var(--cs-space) * 4) 16px;
+  text-align: center;
+}
+
+.text {
+  margin: 0;
+  color: var(--cs-text-secondary);
+}

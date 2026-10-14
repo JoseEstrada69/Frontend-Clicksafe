@@ -32,6 +32,7 @@ describe('toApiError', () => {
     ['CAPTCHA_INVALID', 'No pudimos verificar la solicitud. Inténtalo de nuevo.'],
     ['INVALID_CODE', 'Código incorrecto o expirado.'],
     ['PASSWORD_WEAK', 'Esa contraseña es muy común. Elige otra.'],
+    ['INVALID_CURRENT_PASSWORD', 'La contraseña actual no es correcta.'],
     ['OWN_REPORT', 'No puedes revisar un reporte que tú creaste.'],
     ['REPORT_NOT_EDITABLE', 'Este reporte ya fue revisado por otro administrador.'],
     ['CATALOG_INACTIVE', 'Ese elemento del catálogo está desactivado.'],
