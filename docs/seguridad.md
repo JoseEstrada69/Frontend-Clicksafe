@@ -72,19 +72,50 @@ cada fase.
 | `PATCH /me/password` **sin refresco ni reintento** ante 401 (`skipAuthRefresh`), como defensa | La contraseña actual incorrecta llega como 400 `INVALID_CURRENT_PASSWORD`. Si algún 401 se tratara como sesión vencida, el panel renovaría el token y **volvería a enviar la contraseña actual** (un segundo intento que el admin no hizo) | V6 Authentication · V7 Session Management | `src/lib/api.ts`, `src/lib/admin-api.ts` |
 | `PATCH /me/password` **renueva el token antes de enviar** si vence en menos de 1 minuto; si la renovación falla, la contraseña no se envía | Complementa al anterior: como esa petición no se reintenta, se evita que falle solo porque el access token venció justo en ese momento, sin enviar nunca la contraseña dos veces | V7 Session Management | `src/lib/admin-api.ts`, `src/lib/session.ts` |
 
-### Excepción a ESLint: `@next/next/no-img-element` en el QR del 2FA
+### Excepción a ESLint: `@next/next/no-img-element`
 
-Única regla desactivada en el proyecto, **solo en una línea** de
-`src/app/(auth)/login/configurar-2fa/page.tsx`, con aprobación del equipo.
+Única regla desactivada en el proyecto, **línea por línea** (cada `<img>`
+lleva su propio `eslint-disable-next-line` con el motivo), con aprobación
+del equipo. Lugares:
 
-- **Por qué:** la sección 7.4 del CLAUDE.md pide mostrar el QR con `<img>`.
-  La alternativa que sugiere la regla, `next/image`, agrega el atributo
-  `style="color:transparent"`, que nuestra CSP bloquea (`style-src` sin
-  `'unsafe-inline'`), y habría que relajarla.
+| Archivo | Imagen | Validación previa |
+|---|---|---|
+| `src/app/(auth)/login/configurar-2fa/page.tsx` | QR del 2FA (CLAUDE.md 7.4) | `safeQrDataUrl`: solo `data:image/png;base64,…` |
+| `src/components/EvidenceGallery.tsx` (miniatura y visor) | Evidencias de reportes (CLAUDE.md 7.3) | `isSafeEvidenceUrl`: solo `/api/v1/evidences/{id}?…` de mismo origen |
+
+- **Por qué:** el CLAUDE.md pide `<img>`. La alternativa que sugiere la
+  regla, `next/image`, agrega el atributo `style="color:transparent"`, que
+  nuestra CSP bloquea (`style-src` sin `'unsafe-inline'`), y habría que
+  relajarla.
 - **Por qué es seguro:** la regla es de rendimiento (optimizar imágenes
-  remotas), no de seguridad. El QR es un `data:` URL generado por nuestra API
-  y se valida antes de mostrarse (`safeQrDataUrl`: solo
-  `data:image/png;base64,…`).
+  remotas), no de seguridad. Todas las imágenes vienen de nuestra API, se
+  validan antes de mostrarse y la CSP solo permite `img-src 'self' blob: data:`.
+
+## Fase 3 — Dashboard y reportes
+
+| Control | Ataque que previene | ASVS 5.0 | Archivo |
+|---|---|---|---|
+| **URL reportada nunca es enlace**: se muestra como texto monoespaciado | Que el admin abra por accidente un sitio de **phishing o malware** con un solo clic, o que un `href` malicioso se ejecute | V3 Web Frontend Security · V1 Encoding and Sanitization | `src/components/ReportedUrl.tsx` |
+| **Dominio completo destacado**, calculado por `new URL()` | Imitaciones como `mercadolibre.com.mx.ofertas-xyz.com`: el dominio real queda a la vista | V3 Web Frontend Security | `src/lib/safe-url.ts` |
+| Dominios internacionales en **punycode** (`xn--…`) + aviso | **Homógrafos**: `аmazon.com` con "а" cirílica se ve igual a `amazon.com` | V3 Web Frontend Security | `src/lib/safe-url.ts` |
+| Aviso de **texto antes de "@"** | `https://mercadolibre.com.mx@estafa.com` parece Mercado Libre pero lleva a `estafa.com` | V3 Web Frontend Security | `src/lib/safe-url.ts` |
+| Avisos de **IP** y de **http sin cifrar** | Sitios montados en servidores improvisados; datos que viajarían en claro | V3 Web Frontend Security | `src/lib/safe-url.ts` |
+| **"Abrir con precaución"**: diálogo con advertencia, solo `http:`/`https:` (validado con `new URL()` justo antes de abrir) | Abrir `javascript:` o `data:` (que ejecutarían código con el origen del panel o mostrarían una página falsa) | V3 Web Frontend Security · V1 Encoding and Sanitization | `src/components/ReportedUrl.tsx` |
+| `window.open(url, '_blank', 'noopener,noreferrer')` | **Reverse tabnabbing**: sin `noopener`, la página de estafa podría cambiar la pestaña del panel por un login falso de ClickSafe; `noreferrer` evita que sepa desde dónde se abrió | V3 Web Frontend Security | `src/lib/safe-url.ts` |
+| La URL reportada **nunca** se usa en `<iframe>`, `<img>` ni `fetch` | Que el navegador del admin contacte al sitio de estafa sin que lo decida (rastreo, exploits del navegador) | V3 Web Frontend Security | `src/components/ReportedUrl.tsx` |
+| **Evidencias solo de mismo origen**: `/api/v1/evidences/{id}?…`, validado con una expresión estricta (sin `//`, `..`, `%`, esquemas) | Que una URL manipulada en la respuesta cargue imágenes de un servidor del atacante (rastreo del admin) o apunte a otra ruta de la API | V3 Web Frontend Security · V1 Encoding and Sanitization | `src/lib/safe-url.ts`, `src/components/EvidenceGallery.tsx` |
+| Firma vencida (15 min) → se pide el reporte otra vez, **una vez por minuto como máximo** | Bucles de peticiones si una imagen falla por otra razón | V2 Validation and Business Logic | `src/app/(panel)/reportes/[id]/page.tsx` |
+| **"Quitar imagen"** con confirmación ("…datos personales") y recarga tras la confirmación del servidor | Exposición de **datos personales** en evidencias; borrados accidentales | V14 Data Protection · V2 Validation and Business Logic | `src/components/EvidenceGallery.tsx` |
+| **Autor real y correo** solo en la cola y el detalle, con la marca "Anónimo para el público" | Exponer de más la identidad de quien reportó de forma anónima | V14 Data Protection | `src/app/(panel)/reportes/` |
+| Revisión con **confirmación** que dice el estado final y que no se puede cambiar | Validar o rechazar por accidente | V2 Validation and Business Logic | `src/app/(panel)/reportes/[id]/page.tsx` |
+| Botones ocultos si **`esMio`** (la API también lo impide con `OWN_REPORT`) | Conflicto de interés: un admin validando su propio reporte. El front solo lo comunica; **la API lo hace cumplir** | V8 Authorization | `src/app/(panel)/reportes/[id]/page.tsx` |
+| `REPORT_NOT_EDITABLE` → se recarga el reporte | Decisiones sobre un estado viejo cuando otro admin ya lo revisó (condición de carrera; la API lo resuelve de forma atómica) | V2 Validation and Business Logic | `src/app/(panel)/reportes/[id]/page.tsx` |
+| Comentario de revisión limitado a **500** caracteres (contrato) y recortado | Entradas enormes; el servidor valida igual | V2 Validation and Business Logic | `src/components/TextArea.tsx`, `src/lib/admin-api.ts` |
+| `id` de la ruta validado como entero positivo antes de pedirlo | Peticiones con rutas manipuladas (`/reportes/../admin`) | V1 Encoding and Sanitization | `src/app/(panel)/reportes/[id]/page.tsx` |
+| Filtros y página en el estado de React, **no en la URL** | Que queden en el historial o se compartan por accidente | V14 Data Protection | `src/app/(panel)/reportes/page.tsx` |
+| Avisos de éxito en memoria y **borrados al cerrar sesión** | Que el siguiente admin en la misma pestaña vea un aviso de otra sesión | V7 Session Management | `src/lib/flash.ts`, `src/lib/session.ts` |
+| Títulos, descripciones, nombres y URLs **siempre como texto** (React escapa); `pre-wrap` para saltos de línea | **XSS almacenado**: un reporte con `<script>` en el título o la descripción se ve como texto | V1 Encoding and Sanitization | todas las pantallas |
+| Gráficas en **SVG hecho a mano** con atributos y clases (sin `style`) | Permite mantener la CSP estricta sin librerías de terceros (menos superficie de ataque y de dependencias) | V3 Web Frontend Security · V15 Secure Coding and Architecture | `src/components/BarChart.tsx` |
 
 ## Cómo comprobarlo
 
@@ -120,6 +151,30 @@ sitio. Agregar `'unsafe-inline'` a `style-src` para silenciarlos también
 dejaría pasar estilos inyectados por un atacante (que pueden filtrar datos
 con selectores CSS), así que el aviso se acepta en desarrollo. Que la CSP
 bloquee lo que no trae nonce es justo el comportamiento esperado.
+
+#### Aviso de `connect-src` con `data` (Fase 3)
+
+Revisión del 14 de octubre de 2026 (Opera GX):
+
+- **En desarrollo** apareció en la consola, al abrir el detalle de un
+  reporte (`/reportes/29`) y la pestaña "Todos":
+  `Resource "data", Directive connect-src, Source location …/reportes/29:0`.
+- **Origen:** no es código del panel. En `src/` no hay ninguna llamada a
+  `fetch`, `XMLHttpRequest`, `sendBeacon`, `EventSource` ni `WebSocket`; la
+  única vía de red es axios con rutas relativas `/api/v1/...`. En desarrollo,
+  los únicos archivos con un *source map* incrustado como `data:`
+  (`sourceMappingURL=data:application/json;base64,…`) son de Next:
+  `next-devtools`, el runtime de Turbopack y el runtime del worker. Cuando
+  DevTools está abierto intenta cargar esos source maps y la CSP lo bloquea y
+  lo reporta como `connect-src` (por eso la "línea 0": no lo dispara un
+  script).
+- **Producción (`npm run build` + `npm start`, ventana privada sin
+  extensiones): el aviso NO aparece.** La compilación de producción no
+  contiene source maps `data:` ni peticiones a `data:` (el único `.map`
+  publicado lo genera Turbopack vacío, sin `sources`).
+- **Decisión:** no se agrega `data:` a `connect-src`. Permitiría que un
+  script inyectado "pidiera" contenido arbitrario y es innecesario: el aviso
+  solo existe en desarrollo y viene de las herramientas de Next.
 
 > En producción el panel se sirve por HTTPS detrás de Nginx. Con
 > `npm start` sobre `http://localhost`, algunos navegadores (Safari) aplican

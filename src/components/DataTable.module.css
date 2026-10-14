@@ -1,0 +1,60 @@
+/* Scroll horizontal DENTRO del contenedor en pantallas angostas: la página
+   nunca hace scroll horizontal (CLAUDE.md 9.3). */
+.scroll {
+  overflow-x: auto;
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+}
+
+.table {
+  width: 100%;
+  /* Por debajo de este ancho la tabla no se aprieta más: aparece el scroll */
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: var(--cs-text-meta);
+}
+
+.table th,
+.table td {
+  padding: calc(var(--cs-space) * 1.5) calc(var(--cs-space) * 2);
+  border-bottom: 1px solid var(--cs-border);
+  text-align: left;
+  vertical-align: top;
+  /* Nunca partir palabras a la mitad; solo cadenas largas sin espacios */
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.table th {
+  color: var(--cs-text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Columna principal: se queda con el espacio sobrante y no baja de 16rem */
+.table .primary {
+  width: 40%;
+  min-width: 16rem;
+}
+
+.table .nowrap {
+  white-space: nowrap;
+}
+
+.table .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: var(--cs-background);
+}

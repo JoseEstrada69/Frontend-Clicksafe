@@ -58,6 +58,18 @@
   text-decoration: none;
 }
 
+.count {
+  float: right;
+  min-width: 24px;
+  padding: 0 6px;
+  border-radius: var(--cs-radius-pill);
+  background: var(--cs-gold);
+  color: var(--cs-navy);
+  font-size: var(--cs-text-meta);
+  font-weight: 700;
+  text-align: center;
+}
+
 .link:hover {
   background: var(--cs-sidebar-hover);
 }
@@ -80,7 +92,7 @@
   margin: 0;
   padding: 0 calc(var(--cs-space) * 1.5);
   font-weight: 600;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .signOut {

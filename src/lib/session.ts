@@ -1,3 +1,4 @@
+import { clearFlash } from './flash';
 import type { Tokens } from './types';
 
 // Dónde vive cada token (CLAUDE.md 7.1):
@@ -68,6 +69,8 @@ export function clearSession(): void {
     // Nada que borrar
   }
   clearPendingMfa();
+  // Que un aviso del panel no le aparezca a quien inicie sesión después
+  clearFlash();
 }
 
 // ---------- Verificación en dos pasos pendiente ----------

@@ -65,6 +65,9 @@ El contrato de la API está en [`docs/openapi.json`](docs/openapi.json)
 | `src/lib/captcha.ts`, `captcha-solver.ts`, `captcha.worker.ts` | captcha ALTCHA resuelto en un Web Worker |
 | `src/lib/auth-flow.ts` | login, verificación y configuración del 2FA |
 | `src/lib/idle.ts`, `src/hooks/useIdleLogout.ts` | cierre de sesión por inactividad (15 min) |
+| `src/lib/safe-url.ts` | análisis de URLs reportadas y validación de evidencias |
+| `src/lib/chart.ts`, `src/components/BarChart.tsx` | gráficas de barras en SVG hecho a mano |
+| `src/components/ReportedUrl.tsx` | URL reportada: copiar o abrir con precaución |
 | `src/app/(auth)/` | pantallas sin sesión (login, 2FA, recuperar) |
 | `src/app/(panel)/` | pantallas del panel: guardia de sesión y barra lateral |
 | `src/components/` | componentes base con CSS Modules |
@@ -152,6 +155,51 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
 - [ ] **"Cerrar sesión en todos los dispositivos"** pide confirmación y lleva
       al login; una sesión abierta en otro navegador también se cierra.
 
+## Lista de verificación manual (dashboard y reportes)
+
+**Dashboard (W05)**
+
+- [ ] Las 4 tarjetas suman bien; "Pendientes" lleva a la cola.
+- [ ] Gráficas por mes (12 meses, los vacíos en 0), plataforma ("Otra"
+      agrupada), categoría y estado. "Ver datos" muestra la tabla con los
+      mismos números. Al pasar el mouse por una barra se ve su valor.
+- [ ] En modo oscuro las gráficas se leen bien.
+
+**Reportes (W06)**
+
+- [ ] La cola muestra primero el reporte más antiguo; las pestañas
+      Pendientes / Validados / No validados / Todos filtran ("Todos" mezcla
+      los tres estados); la paginación funciona.
+- [ ] Un reporte anónimo muestra el nombre del autor con **"Anónimo para el
+      público"**.
+- [ ] La barra lateral muestra el número de pendientes junto a "Reportes".
+- [ ] La URL del navegador no cambia al filtrar o cambiar de página.
+
+**Detalle y revisión (W07)**
+
+- [ ] Crea (desde la app o la API) un reporte con título
+      `<img src=x onerror=alert(1)>`: se ve como texto y no aparece ninguna
+      alerta.
+- [ ] El detalle muestra el número de comentarios del reporte.
+- [ ] La URL reportada **no es clicable**; el dominio aparece grande. Con
+      `https://mercadolibre.com.mx@ejemplo.com` aparece el aviso del "@" y el
+      dominio `ejemplo.com`.
+- [ ] **"Abrir con precaución"** muestra el aviso; al aceptar se abre en una
+      pestaña nueva. En esa pestaña, en la consola, `window.opener` es `null`.
+- [ ] Las evidencias se ven y se amplían. Tras 15 minutos en la página, al
+      recargar una imagen se piden URLs nuevas solas.
+- [ ] **"Quitar imagen"** pide confirmación y la imagen desaparece después.
+- [ ] El comentario no pasa de 500 caracteres (contador).
+- [ ] **"Validar fraude"** / **"Rechazar"** piden confirmación; al aceptar se
+      vuelve a la cola con el aviso de éxito y el contador baja.
+- [ ] Con un reporte creado por el mismo admin aparece **"No puedes revisar
+      un reporte que tú creaste."** y no hay botones.
+- [ ] Revisar el mismo reporte desde dos navegadores: el segundo ve
+      **"Este reporte ya fue revisado por otro administrador."** y el estado
+      actualizado.
+- [ ] `/reportes/abc` y `/reportes/999999` muestran "No encontramos lo que
+      buscas…".
+
 ## Pendientes conocidos
 
 - **`npm audit` reporta 5 vulnerabilidades altas** en `braces`
@@ -162,8 +210,5 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
   sitio. No hay versión corregida de `braces`, y `npm audit fix --force`
   bajaría `eslint-config-next` a la 14, incompatible con Next 16, por lo que
   **no se debe ejecutar**. Se resuelve en la Fase 6.
-- **Diferencias entre el contrato y el CLAUDE.md** (se resuelven en el
-  backend antes de la Fase 3): `GET /admin/stats` no trae reportes por mes;
-  `GET /reports/:id` no trae el correo del autor; el comentario de revisión es
-  de máx. 500 caracteres; `GET /me` no trae `id`; la bitácora filtra por id de
-  usuario y no trae su nombre.
+- **Diferencias pendientes para las fases 4 y 5:** `GET /me` no trae `id`;
+  la bitácora filtra por id de usuario y no trae su nombre.

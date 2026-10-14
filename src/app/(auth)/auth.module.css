@@ -98,5 +98,5 @@
 
 .secret code {
   font-family: var(--cs-font-mono);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }

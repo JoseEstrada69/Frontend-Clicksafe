@@ -1,0 +1,84 @@
+.figure {
+  display: grid;
+  gap: var(--cs-space);
+  margin: 0;
+  padding: calc(var(--cs-space) * 2.5);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+  min-width: 0;
+}
+
+.caption {
+  color: var(--cs-navy);
+  font-size: var(--cs-text-section);
+  font-weight: 700;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.grid {
+  stroke: var(--cs-border);
+  stroke-width: 1;
+}
+
+.tick,
+.label,
+.value {
+  fill: var(--cs-text-secondary);
+  font-size: 13px;
+}
+
+.value {
+  fill: var(--cs-text);
+  font-weight: 600;
+}
+
+.bar {
+  fill: var(--cs-navy);
+}
+
+.default {
+  fill: var(--cs-navy);
+}
+
+.pending {
+  fill: var(--cs-gold);
+}
+
+.validated {
+  fill: var(--cs-validated-fg);
+}
+
+.rejected {
+  fill: var(--cs-rejected-fg);
+}
+
+.details summary {
+  color: var(--cs-blue);
+  cursor: pointer;
+  font-size: var(--cs-text-meta);
+}
+
+.table {
+  width: 100%;
+  margin-top: var(--cs-space);
+  border-collapse: collapse;
+  font-size: var(--cs-text-meta);
+}
+
+.table th,
+.table td {
+  padding: calc(var(--cs-space) / 2) var(--cs-space);
+  border-bottom: 1px solid var(--cs-border);
+  text-align: left;
+}
+
+.table .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

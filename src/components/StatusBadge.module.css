@@ -1,0 +1,36 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--cs-space) / 2);
+  padding: 2px calc(var(--cs-space) * 1.25);
+  border-radius: var(--cs-radius-pill);
+  font-size: var(--cs-text-meta);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pendiente {
+  background: var(--cs-pending-bg);
+  color: var(--cs-pending-fg);
+}
+
+/* "Validado" = fraude confirmado por un admin → rojo, no verde */
+.validado {
+  background: var(--cs-validated-bg);
+  color: var(--cs-validated-fg);
+}
+
+.rechazado {
+  background: var(--cs-rejected-bg);
+  color: var(--cs-rejected-fg);
+}
