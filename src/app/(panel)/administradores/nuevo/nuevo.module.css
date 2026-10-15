@@ -1,0 +1,37 @@
+.back {
+  margin: 0 0 calc(var(--cs-space) * 2);
+  font-size: var(--cs-text-meta);
+}
+
+.card {
+  max-width: 560px;
+}
+
+.form {
+  display: grid;
+  gap: calc(var(--cs-space) * 2);
+}
+
+.success {
+  margin: 0 0 calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 1.5);
+  border: 1px solid var(--cs-success);
+  border-radius: var(--cs-radius-control);
+  color: var(--cs-success);
+  font-weight: 600;
+}
+
+.error {
+  margin: 0 0 calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 1.5);
+  border: 1px solid var(--cs-danger);
+  border-radius: var(--cs-radius-control);
+  color: var(--cs-danger);
+  font-weight: 600;
+}
+
+.summary {
+  margin: var(--cs-space) 0;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}

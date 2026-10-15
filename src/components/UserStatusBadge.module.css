@@ -1,0 +1,18 @@
+.badge {
+  display: inline-block;
+  padding: 2px calc(var(--cs-space) * 1.25);
+  border-radius: var(--cs-radius-pill);
+  font-size: var(--cs-text-meta);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.active {
+  border: 1px solid var(--cs-success);
+  color: var(--cs-success);
+}
+
+.suspended {
+  background: var(--cs-validated-bg);
+  color: var(--cs-validated-fg);
+}

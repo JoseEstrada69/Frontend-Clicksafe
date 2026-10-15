@@ -117,6 +117,26 @@ del equipo. Lugares:
 | Títulos, descripciones, nombres y URLs **siempre como texto** (React escapa); `pre-wrap` para saltos de línea | **XSS almacenado**: un reporte con `<script>` en el título o la descripción se ve como texto | V1 Encoding and Sanitization | todas las pantallas |
 | Gráficas en **SVG hecho a mano** con atributos y clases (sin `style`) | Permite mantener la CSP estricta sin librerías de terceros (menos superficie de ataque y de dependencias) | V3 Web Frontend Security · V15 Secure Coding and Architecture | `src/components/BarChart.tsx` |
 
+## Fase 4 — Moderación y usuarios
+
+| Control | Ataque que previene | ASVS 5.0 | Archivo |
+|---|---|---|---|
+| Contenido de comentarios, motivos y datos de usuarios **siempre como texto** (React escapa; `pre-wrap`) | **XSS almacenado**: un comentario con `<img src=x onerror=…>` se ve como texto en el panel del admin, que es justo donde un atacante querría ejecutar código | V1 Encoding and Sanitization | `src/app/(panel)/comentarios/page.tsx` |
+| **Confirmación** antes de confirmar ocultamiento, restaurar, suspender, reactivar y crear admin, diciendo qué va a pasar | Acciones sensibles por un clic accidental | V2 Validation and Business Logic | páginas de la Fase 4 |
+| Después de cada acción se **vuelve a pedir** la lista (también si falla) | Mostrar un estado que el servidor no confirmó; con `COMMENT_NOT_FLAGGED` (otro admin se adelantó) se ve el estado real | V2 Validation and Business Logic | `comentarios/page.tsx`, `usuarios/page.tsx` |
+| Suspender: aviso "**se cerrarán todas sus sesiones de inmediato**" | Que el admin suspenda sin entender que corta el acceso del usuario en ese momento (control de respuesta ante una cuenta comprometida) | V7 Session Management · V8 Authorization | `src/app/(panel)/usuarios/page.tsx` |
+| Fila propia sin botones ("Tu cuenta"), reconocida por correo con `GET /me` | Solo comunicación: **la API** rechaza cambiar el estado propio (`OWN_STATUS`) y dejar el sistema sin admins activos (`LAST_ACTIVE_ADMIN`), aunque se manipule el panel | V8 Authorization | `src/lib/users.ts` |
+| Búsqueda de usuarios (máx. 100) y página **en el estado de React**, nunca en la URL; se busca al enviar | Que nombres o correos buscados queden en el historial, en logs de proxies o se compartan en un enlace | V14 Data Protection | `src/app/(panel)/usuarios/page.tsx`, `src/components/SearchField.tsx` |
+| **Reautenticación con TOTP** para crear administradores | Que alguien con una sesión de admin robada o desatendida cree un admin propio (persistencia del atacante): necesita además el segundo factor del admin | V6 Authentication · V8 Authorization | `src/app/(panel)/administradores/nuevo/page.tsx` |
+| El **TOTP** vive solo en el campo, va en **una** petición y se **borra en un `finally`**, salga bien o mal; `ApiError` no conserva el body (prueba) | Que el código quede en memoria, en almacenamiento, en avisos o en logs; reutilización del código | V6 Authentication · V14 Data Protection | `nuevo/page.tsx`, `src/lib/errors.ts` |
+| `POST /admin/admins` **sin refresco ni reintento** (`skipAuthRefresh`) y con renovación previa del token | Si un 401 de esta petición se tratara como sesión vencida, el panel renovaría la sesión y **reenviaría el código TOTP**: un intento extra que acerca el bloqueo de la cuenta | V6 Authentication · V7 Session Management | `src/lib/admin-api.ts`, `src/lib/api.ts` |
+| TOTP incorrecto (400 `INVALID_TOTP`) → "No pudimos confirmar tu identidad…"; cuenta bloqueada o sin 2FA (401) → "No pudimos crear el administrador en este momento…" | Mensajes claros sin detalles: el 401 no dice si hay un bloqueo ni por qué, y no se confunde con "Tu sesión expiró" | V6 Authentication · V16 Security Logging and Error Handling | `src/lib/admin-api.ts`, `src/lib/errors.ts` |
+| **Detalle de las denuncias** como texto plano; la API no manda quién denunció | XSS almacenado a través del texto libre de una denuncia; exponer la identidad de quien denunció | V1 Encoding and Sanitization · V14 Data Protection | `src/app/(panel)/comentarios/page.tsx` |
+| Textos de confirmación según el contrato: "confirmar" **avisa al autor**, "restaurar" **no avisa a nadie**; suspender revoca sesiones, reactivar no | Que el admin tome una decisión sin saber a quién notifica o qué sesiones corta | V2 Validation and Business Logic | `comentarios/page.tsx`, `usuarios/page.tsx` |
+| Correo del nuevo admin con `autoComplete="off"` | Que el navegador rellene el correo del propio admin en la cuenta nueva | V2 Validation and Business Logic | `nuevo/page.tsx` |
+| Mensajes propios para `OWN_STATUS`, `LAST_ACTIVE_ADMIN`, `EMAIL_TAKEN`, `COMMENT_NOT_FLAGGED`, `INVALID_TOTP` | Nunca se muestra el `message` técnico del servidor | V16 Security Logging and Error Handling | `src/lib/errors.ts` |
+| Contador de comentarios por moderar en la barra lateral | Que haya contenido dañino oculto automáticamente sin revisar | — (operación) | `src/app/(panel)/layout.tsx` |
+
 ## Cómo comprobarlo
 
 ```sh
@@ -152,29 +172,35 @@ dejaría pasar estilos inyectados por un atacante (que pueden filtrar datos
 con selectores CSS), así que el aviso se acepta en desarrollo. Que la CSP
 bloquee lo que no trae nonce es justo el comportamiento esperado.
 
-#### Aviso de `connect-src` con `data` (Fase 3)
+#### Aviso de `connect-src` con `data` (fases 3 y 4)
 
-Revisión del 14 de octubre de 2026 (Opera GX):
+Revisiones del 14 de octubre de 2026 en Opera GX:
 
-- **En desarrollo** apareció en la consola, al abrir el detalle de un
-  reporte (`/reportes/29`) y la pestaña "Todos":
+- **Fase 3:** apareció al abrir el detalle de un reporte con evidencias
+  (`/reportes/29`) y la pestaña "Todos":
   `Resource "data", Directive connect-src, Source location …/reportes/29:0`.
-- **Origen:** no es código del panel. En `src/` no hay ninguna llamada a
-  `fetch`, `XMLHttpRequest`, `sendBeacon`, `EventSource` ni `WebSocket`; la
-  única vía de red es axios con rutas relativas `/api/v1/...`. En desarrollo,
-  los únicos archivos con un *source map* incrustado como `data:`
-  (`sourceMappingURL=data:application/json;base64,…`) son de Next:
-  `next-devtools`, el runtime de Turbopack y el runtime del worker. Cuando
-  DevTools está abierto intenta cargar esos source maps y la CSP lo bloquea y
-  lo reporta como `connect-src` (por eso la "línea 0": no lo dispara un
-  script).
+- **Fase 4:** apareció en `/login/configurar-2fa` (la pantalla del QR).
+  **El equipo decodificó la URL `data:` bloqueada: es un *shader*
+  FidelityFX-CAS** (un filtro de nitidez de imágenes) **que inyecta el propio
+  navegador Opera GX** para mejorar las imágenes de la página. Esto explica
+  que aparezca en pantallas con imágenes (evidencias, QR).
+- **Origen confirmado: el navegador, no el panel.** En `src/` no hay ninguna
+  llamada a `fetch`, `XMLHttpRequest`, `sendBeacon`, `EventSource` ni
+  `WebSocket`; la única vía de red es axios con rutas relativas `/api/v1/...`.
+- **Corrección a la Fase 3:** en esa fase se atribuyó el aviso a los
+  *source maps* incrustados como `data:` en los archivos de desarrollo de
+  Next (`next-devtools`, el runtime de Turbopack y el del worker). Esos
+  archivos existen en desarrollo y DevTools puede generar avisos parecidos al
+  cargarlos, pero la causa comprobada de los avisos observados es la función
+  de Opera GX descrita arriba.
 - **Producción (`npm run build` + `npm start`, ventana privada sin
-  extensiones): el aviso NO aparece.** La compilación de producción no
+  extensiones): el aviso NO aparece**, y la compilación de producción no
   contiene source maps `data:` ni peticiones a `data:` (el único `.map`
   publicado lo genera Turbopack vacío, sin `sources`).
 - **Decisión:** no se agrega `data:` a `connect-src`. Permitiría que un
-  script inyectado "pidiera" contenido arbitrario y es innecesario: el aviso
-  solo existe en desarrollo y viene de las herramientas de Next.
+  script inyectado "pidiera" contenido arbitrario. Que la CSP bloquee lo que
+  el navegador inyecta en la página es el comportamiento esperado y no afecta
+  al panel (las imágenes se ven igual, solo sin el filtro de nitidez).
 
 > En producción el panel se sirve por HTTPS detrás de Nginx. Con
 > `npm start` sobre `http://localhost`, algunos navegadores (Safari) aplican

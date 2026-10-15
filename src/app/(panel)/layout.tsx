@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Skeleton } from '@/components/Skeleton';
 import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { SessionContext } from '@/hooks/useSession';
-import { getAdminReports, getMe, logout } from '@/lib/admin-api';
+import { getAdminReports, getFlaggedComments, getMe, logout } from '@/lib/admin-api';
 import { refreshSession } from '@/lib/api';
 import { MESSAGES, toApiError, type ApiError } from '@/lib/errors';
 import {
@@ -108,17 +108,21 @@ export default function PanelLayout({ children }: LayoutProps<'/'>) {
     setState({ status: 'ready', me });
   }, []);
 
-  // Contador de reportes pendientes en la barra lateral. Basta con el
-  // `total` de una página de 1 elemento. Es solo informativo: si falla, no
-  // se muestra.
+  // Contadores de la barra lateral: reportes pendientes (basta con el `total`
+  // de una página de 1 elemento) y comentarios por moderar (la cola no está
+  // paginada). Son solo informativos: si fallan, no se muestran.
   const ready = state.status === 'ready';
   const [pendingReports, setPendingReports] = useState<number | null>(null);
+  const [flaggedComments, setFlaggedComments] = useState<number | null>(null);
   const [countersVersion, setCountersVersion] = useState(0);
   useEffect(() => {
     if (!ready) return;
     const controller = new AbortController();
     getAdminReports({ page: 1, limit: 1, estado: 'pendiente' }, controller.signal)
       .then((page) => setPendingReports(page.total))
+      .catch(() => undefined);
+    getFlaggedComments(controller.signal)
+      .then((comments) => setFlaggedComments(comments.length))
       .catch(() => undefined);
     return () => controller.abort();
   }, [ready, countersVersion]);
@@ -153,7 +157,7 @@ export default function PanelLayout({ children }: LayoutProps<'/'>) {
       <div className={styles.shell}>
         <Sidebar
           adminName={session.me.nombre}
-          counts={{ '/reportes': pendingReports }}
+          counts={{ '/reportes': pendingReports, '/comentarios': flaggedComments }}
           signingOut={signingOut}
           onSignOut={signOut}
         />

@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { ApiError, MESSAGES, toApiError } from './errors';
 import {
+  accessTokenExpiresSoon,
   endSession,
   getAccessToken,
   getRefreshToken,
@@ -90,6 +91,17 @@ async function runRefresh(): Promise<void> {
       endSession(MESSAGES.sessionExpired);
     }
     throw error;
+  }
+}
+
+/**
+ * Renueva el access token ANTES de una petición que no debe reintentarse
+ * (`skipAuthRefresh`), si vence en menos de 1 minuto. Si la renovación
+ * falla, lanza el error y la petición no se envía.
+ */
+export async function ensureFreshToken(): Promise<void> {
+  if (getAccessToken() && accessTokenExpiresSoon()) {
+    await refreshSession();
   }
 }
 
