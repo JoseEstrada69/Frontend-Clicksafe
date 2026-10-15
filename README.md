@@ -3,44 +3,132 @@
 Panel web **solo para administradores** de ClickSafe, la red social para
 reportar publicaciones sospechosas de fraude en tiendas en línea
 (*"Consulta antes de comprar"*). Hecho con Next.js 16 (App Router), React 19
-y TypeScript.
+y TypeScript. Socio formador: Red por la Ciberseguridad. Objetivo de
+seguridad: OWASP ASVS nivel 2.
 
-> Proyecto en construcción. Las reglas de trabajo, de seguridad y de diseño
-> están en [`CLAUDE.md`](CLAUDE.md).
+Las reglas de trabajo, de seguridad y de diseño están en
+[`CLAUDE.md`](CLAUDE.md); cada control de seguridad, el ataque que previene y
+dónde vive, en [`docs/seguridad.md`](docs/seguridad.md).
+
+## Qué hace
+
+| Pantalla | Ruta |
+|---|---|
+| Iniciar sesión, verificación en dos pasos (TOTP) y su configuración, recuperar contraseña | `/login`, `/login/verificar`, `/login/configurar-2fa`, `/recuperar` |
+| Dashboard con estadísticas | `/` |
+| Cola de reportes y detalle con revisión (validar / rechazar) | `/reportes`, `/reportes/[id]` |
+| Moderación de comentarios denunciados | `/comentarios` |
+| Usuarios (buscar, suspender, reactivar) y nuevo administrador | `/usuarios`, `/administradores/nuevo` |
+| Catálogos de plataformas y categorías de fraude | `/catalogos` |
+| Bitácora de auditoría | `/bitacora` |
+| Mi cuenta | `/cuenta` |
 
 ## Requisitos
 
-- Node.js 22 o superior (LTS) y npm.
-- La API de ClickSafe (NestJS) corriendo en <http://localhost:3000>.
-- Mailpit en <http://localhost:8025>: ahí llegan los códigos de recuperación
-  de contraseña.
-- Una app de autenticación (Google Authenticator, Microsoft Authenticator…)
-  para la verificación en dos pasos, obligatoria para todos los admins.
+- **Node.js 22 o superior** (LTS) y npm.
+- **Docker Desktop**, para MySQL y Mailpit del backend en desarrollo.
+- El repositorio del **backend de ClickSafe** (NestJS + MySQL), con la API en
+  <http://localhost:3000>.
+- **Mailpit** en <http://localhost:8025>: ahí llegan los códigos de
+  recuperación de contraseña (también los de los admins nuevos).
+- Una **app de autenticación** (Google Authenticator, Microsoft
+  Authenticator…): la verificación en dos pasos es obligatoria para todos los
+  admins.
 
-## Correr en desarrollo
+Los comandos de este README funcionan igual en PowerShell (Windows) y en zsh
+(macOS).
 
-Los comandos funcionan igual en PowerShell (Windows) y en zsh (macOS).
+## Levantar todo en local
 
-1. Instala las dependencias:
+### 1. Backend, MySQL y Mailpit
 
-   ```sh
+Resumen del README del backend (`Backend-ClickSafe/README.md`); los detalles
+y los permisos exactos de la base están ahí. Los comandos son de PowerShell,
+como en ese README.
+
+1. **MySQL y Mailpit con Docker**, desde la raíz del repo del backend: copia
+   `infra/.env.example` a `infra/.env`, pon un valor aleatorio en
+   `MYSQL_ROOT_PASSWORD` y levanta los contenedores:
+
+   ```powershell
+   node -e "console.log(require('crypto').randomBytes(24).toString('base64'))"
+   docker compose -f infra/docker-compose.yml --env-file infra/.env up -d
+   ```
+
+   MySQL queda en `127.0.0.1:3306` y Mailpit en <http://localhost:8025>
+   (SMTP en `127.0.0.1:1025`).
+
+2. **Esquema y usuario de mínimo privilegio:** carga
+   `database/clicksafe_db.sql` en el contenedor y crea el usuario
+   `clicksafe_api` con los `GRANT` que lista el README del backend (la API
+   nunca se conecta como root).
+
+3. **API:** en `api/`, instala dependencias y crea su `.env`:
+
+   ```powershell
+   cd api
    npm install
+   Copy-Item .env.example .env
    ```
 
-2. Copia `.env.example` como `.env.local` y ajusta `API_PROXY_TARGET` si tu
-   backend no está en `http://localhost:3000`.
+   En `api/.env` pon un `JWT_ACCESS_SECRET` aleatorio (mínimo 32
+   caracteres), en `DB_PASSWORD` la contraseña de `clicksafe_api`, y en
+   `SEED_ADMIN_NOMBRE` / `SEED_ADMIN_CORREO` los datos del primer admin.
 
-   ```sh
-   cp .env.example .env.local
+4. **Levantar la API y cargar los datos** (dentro de `api/`):
+
+   ```powershell
+   npm run start:dev    # API en http://localhost:3000
+   npm run seed:admin   # crea el primer admin y muestra su contraseña UNA sola vez
+   npm run seed:demo    # datos de ejemplo para el panel (requiere seed:admin antes)
    ```
 
-3. Levanta el panel:
+   `seed:demo` es idempotente (solo crea lo que falta) y nunca corre con
+   `NODE_ENV=production`. Crea más de 20 usuarios (uno suspendido), unos 25
+   reportes en los 3 estados y en los últimos 12 meses (algunos anónimos y
+   con evidencias), el reporte de moderación "[Demo moderación]", un reporte
+   con título `<img src=x onerror=alert(1)>`, otro con la URL
+   `https://mercadolibre.com.mx@estafa.example` y un segundo admin de demo.
 
-   ```sh
-   npm run dev
-   ```
+### 2. Panel
 
-4. Abre <http://localhost:3001>.
+En este repositorio:
+
+```sh
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+`.env.local` solo necesita una variable (no es secreta y **nunca** llega al
+navegador, porque no lleva el prefijo `NEXT_PUBLIC_`):
+
+```sh
+# Dirección del backend; Next reenvía /api/v1/* a esta URL
+API_PROXY_TARGET=http://localhost:3000
+```
+
+Abre <http://localhost:3001>.
+
+### 3. Cómo entrar
+
+1. `npm run seed:admin` crea el admin con el nombre y correo de
+   `SEED_ADMIN_NOMBRE` / `SEED_ADMIN_CORREO` y una **contraseña aleatoria
+   de 24 caracteres que se muestra UNA sola vez en la consola** (no se
+   escribe en ningún archivo). Cópiala en tu gestor de contraseñas en ese
+   momento. Si ya existe cualquier admin, el script no crea ni cambia nada.
+2. Inicia sesión en el panel con ese correo y esa contraseña.
+
+   **Si perdiste la contraseña**, usa **"¿Olvidaste tu contraseña?"**: el
+   código de 8 dígitos llega a Mailpit y ahí defines una nueva.
+3. En el **primer login** el panel pide configurar la verificación en dos
+   pasos: muestra un **QR**; escanéalo con tu app de autenticación y escribe
+   el código de 6 dígitos.
+4. Espera a que la app muestre un **código nuevo** y escríbelo en
+   "Verificación en dos pasos". Ya estás dentro.
+
+Las siguientes veces solo se pide el código de la app después de la
+contraseña. Un usuario normal (no admin) no puede entrar al panel.
 
 ## Cómo se conecta con la API
 
@@ -50,7 +138,8 @@ El navegador nunca habla directo con el backend. El panel pide todo a
 hace lo mismo. Por eso **no se habilita CORS en el backend**.
 
 El contrato de la API está en [`docs/openapi.json`](docs/openapi.json)
-(copia del que exporta el backend) y sus tipos en `src/lib/types.ts`.
+(copia del que exporta el backend con `npm run openapi:export`) y sus tipos en
+`src/lib/types.ts`.
 
 ## Dónde está cada cosa
 
@@ -66,11 +155,14 @@ El contrato de la API está en [`docs/openapi.json`](docs/openapi.json)
 | `src/lib/auth-flow.ts` | login, verificación y configuración del 2FA |
 | `src/lib/idle.ts`, `src/hooks/useIdleLogout.ts` | cierre de sesión por inactividad (15 min) |
 | `src/lib/safe-url.ts` | análisis de URLs reportadas y validación de evidencias |
+| `src/lib/audit.ts` | bitácora: fechas, nombres de acciones y datos sensibles ocultos |
 | `src/lib/chart.ts`, `src/components/BarChart.tsx` | gráficas de barras en SVG hecho a mano |
 | `src/components/ReportedUrl.tsx` | URL reportada: copiar o abrir con precaución |
 | `src/app/(auth)/` | pantallas sin sesión (login, 2FA, recuperar) |
 | `src/app/(panel)/` | pantallas del panel: guardia de sesión y barra lateral |
 | `src/components/` | componentes base con CSS Modules |
+| `tests/` | pruebas unitarias (Vitest) |
+| `.github/` | CI (GitHub Actions) y Dependabot |
 | `docs/seguridad.md` | cada control de seguridad y el ataque que previene |
 
 ## Scripts
@@ -83,10 +175,44 @@ El contrato de la API está en [`docs/openapi.json`](docs/openapi.json)
 | `npm run lint`  | ESLint                                      |
 | `npm test`      | pruebas unitarias con Vitest                |
 
-## Lista de verificación manual (autenticación)
+## Pruebas
 
-Con el backend, Mailpit y `npm run dev` corriendo. Usa una ventana privada y
-ten abierta la consola del navegador (no debe haber errores de `script-src`).
+```sh
+npm test
+```
+
+Las pruebas simulan la API con un *adapter* falso de axios (no necesitan el
+backend). Cubren, entre otras:
+
+| # | Requerimiento de lectura de datos | Éxito | Fallo |
+|---|---|---|---|
+| 1 | Cargar estadísticas del dashboard (`tests/admin-reports.test.ts`) | datos agrupados correctos | 500 → "Algo salió mal de nuestro lado…" |
+| 2 | Cargar cola de reportes pendientes (`tests/admin-reports.test.ts`) | 3 reportes pendientes | 403 → "No tienes permiso para hacer esto." |
+| 3 | Cargar bitácora con filtros (`tests/catalogs-audit.test.ts`) | manda los parámetros correctos y devuelve la página | sin conexión → mensaje de conexión |
+
+Además: `safe-url` rechaza `javascript:` y `data:`; el payload del captcha;
+5 errores 401 simultáneos hacen **una sola** llamada a `/auth/refresh`; el
+TOTP de "nuevo administrador" no queda en ningún error; datos sensibles
+ocultos en la bitácora.
+
+## Integración continua
+
+Cada push a `main` y cada Pull Request corren en GitHub Actions
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)): `npm ci`, lint,
+pruebas, build y `npm audit --omit=dev --audit-level=high`. CodeQL está
+activo con el *default setup* del repositorio y Dependabot
+([`.github/dependabot.yml`](.github/dependabot.yml)) revisa cada semana npm y
+GitHub Actions.
+
+## Lista de verificación final del panel
+
+Con el backend (con `seed:admin` y `seed:demo`), Mailpit y `npm run dev`
+corriendo. Usa una ventana privada y ten abierta la consola del navegador:
+no debe haber errores de `script-src` (los avisos de `style-src-elem` de las
+herramientas de desarrollo de Next y los que inyecta el navegador son
+esperados; ver `docs/seguridad.md`).
+
+### Autenticación y sesión
 
 **Iniciar sesión (W01)**
 
@@ -155,7 +281,7 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
 - [ ] **"Cerrar sesión en todos los dispositivos"** pide confirmación y lleva
       al login; una sesión abierta en otro navegador también se cierra.
 
-## Lista de verificación manual (dashboard y reportes)
+### Dashboard y reportes
 
 **Dashboard (W05)**
 
@@ -177,13 +303,13 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
 
 **Detalle y revisión (W07)**
 
-- [ ] Crea (desde la app o la API) un reporte con título
-      `<img src=x onerror=alert(1)>`: se ve como texto y no aparece ninguna
+- [ ] El reporte de `seed:demo` con título `<img src=x onerror=alert(1)>`
+      se ve como texto (en la cola y en el detalle) y no aparece ninguna
       alerta.
 - [ ] El detalle muestra el número de comentarios del reporte.
-- [ ] La URL reportada **no es clicable**; el dominio aparece grande. Con
-      `https://mercadolibre.com.mx@ejemplo.com` aparece el aviso del "@" y el
-      dominio `ejemplo.com`.
+- [ ] La URL reportada **no es clicable**; el dominio aparece grande. En el
+      reporte de `seed:demo` con `https://mercadolibre.com.mx@estafa.example`
+      aparece el aviso del "@" y el dominio `estafa.example`.
 - [ ] **"Abrir con precaución"** muestra el aviso; al aceptar se abre en una
       pestaña nueva. En esa pestaña, en la consola, `window.opener` es `null`.
 - [ ] Las evidencias se ven y se amplían. Tras 15 minutos en la página, al
@@ -200,7 +326,7 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
 - [ ] `/reportes/abc` y `/reportes/999999` muestran "No encontramos lo que
       buscas…".
 
-## Lista de verificación manual (moderación y usuarios)
+### Moderación y usuarios
 
 **Comentarios (W08)** — datos de demo: los comentarios del reporte
 **"[Demo moderación]"** (uno `oculto_auto`, uno visible con denuncias, uno con
@@ -263,18 +389,81 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
 - [ ] En DevTools → Application no aparece el código en `sessionStorage` ni
       `localStorage`.
 
+### Catálogos y bitácora
+
+**Catálogos (W11)**
+
+- [ ] Pestañas **Plataformas** y **Categorías de fraude**; cada tabla
+      muestra activas e inactivas (Activa / Inactiva).
+- [ ] La plataforma **"Otra"** aparece como **Fija**, sin botones de editar
+      ni desactivar.
+- [ ] **"Agregar plataforma"** / **"Agregar categoría"** abren un diálogo; con
+      el nombre vacío se avisa sin enviar. Al guardar aparece el aviso y la
+      tabla se actualiza.
+- [ ] **"Editar"** cambia el nombre (y la descripción en categorías).
+- [ ] **"Desactivar"** pide confirmación con "Ya no aparecerá al crear
+      reportes; los reportes existentes la conservan." y la fila pasa a
+      Inactiva; **"Activar"** la regresa.
+- [ ] No existe ningún botón para borrar.
+- [ ] Agregar una plataforma con un nombre que ya existe muestra "Ya existe
+      un elemento con ese nombre." (cuando el backend publique
+      `CATALOG_NAME_TAKEN`; ver "Pendientes").
+
+**Bitácora (W12)**
+
+- [ ] La tabla muestra Fecha y hora · Acción (en español) · Resultado ·
+      Usuario (nombre y correo, o "Sin usuario") · Recurso · IP · Detalle;
+      está paginada y no tiene acciones de escritura.
+- [ ] Después de probar el panel aparecen, con su nombre en español, las
+      acciones que hiciste: "Reporte revisado", "Comentario moderado",
+      "Usuario suspendido", "Administrador creado", "Catálogo modificado"…
+- [ ] Filtrar por acción (por ejemplo `reporte_revisado`), por ID de usuario
+      y por rango de fechas cambia los resultados; **la URL no cambia**.
+      "Limpiar" quita los filtros.
+- [ ] Un rango con "desde" posterior a "hasta" se avisa sin consultar.
+- [ ] Los cuatro filtros quedan a la misma altura; "Acción" muestra
+      "Todas (elige de la lista)" y despliega las acciones en español.
+- [ ] "Ver" abre un diálogo a lo ancho con los datos del evento, el detalle
+      como texto (JSON, con scroll si es largo) y el navegador. Se cierra con
+      "Cerrar" o Esc. Un intento de login con un correo inexistente aparece
+      con "Sin usuario".
+
+### Seguridad general
+
+- [ ] `curl -I http://localhost:3001/login` muestra `content-security-policy`
+      con un nonce distinto en cada petición, `x-content-type-options`,
+      `x-frame-options: DENY`, `referrer-policy: no-referrer`,
+      `permissions-policy`, `cross-origin-opener-policy` y **ninguna**
+      `x-powered-by`.
+- [ ] Con `npm run build` + `npm start` en una ventana privada sin
+      extensiones, la consola no muestra avisos de CSP.
+- [ ] DevTools → Application: solo `clicksafe.refreshToken` en
+      `sessionStorage`; nada en `localStorage` ni cookies del panel.
+- [ ] Una ruta inexistente muestra "No encontramos esta página" con estilos
+      (sin avisos de CSP).
+
 ## Pendientes conocidos
 
-- **`npm audit` reporta 5 vulnerabilidades altas** en `braces`
-  ([GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)),
-  que llega a través de `eslint-config-next` → `@next/eslint-plugin-next` →
-  `fast-glob` → `micromatch`. Solo afecta herramientas de desarrollo (ESLint):
-  `npm audit --omit=dev` reporta 0 vulnerabilidades, así que no llega al
-  sitio. No hay versión corregida de `braces`, y `npm audit fix --force`
-  bajaría `eslint-config-next` a la 14, incompatible con Next 16, por lo que
-  **no se debe ejecutar**. Se resuelve en la Fase 6.
-- **`GET /me` no trae `id`:** en Usuarios (W09) la fila propia se reconoce
-  por correo. Es solo comunicación; la API rechaza cambiar el estado propio.
-- **Bitácora (Fase 5):** cada entrada ya trae `usuario: { nombre, correo }`
-  (o `null` si el evento no tiene usuario, por ejemplo un login con un correo
-  inexistente); el filtro `usuario` sigue siendo el id numérico.
+- **`braces` (Dependabot #1, solo desarrollo) — riesgo aceptado:** `npm
+  audit` (sin `--omit=dev`) reporta 5 avisos altos que vienen de una sola
+  falla en `braces`, a través de `eslint-config-next` →
+  `@next/eslint-plugin-next` → `fast-glob` → `micromatch`. **No existe versión
+  corregida** (el aviso oficial marca `<= 3.0.3` con
+  `first_patched_version: null`), así que no se puede resolver con
+  `overrides`; `npm audit fix --force` bajaría `eslint-config-next` a la 14
+  (incompatible con Next 16) y **no se debe ejecutar**. `npm audit
+  --omit=dev` reporta 0: no llega al sitio. El equipo cerró la alerta como
+  riesgo tolerable; justificación en `docs/seguridad.md`. Dependabot la
+  reabre si sale una versión corregida.
+- **Catálogos — nombre duplicado:** el panel ya muestra "Ya existe un
+  elemento con ese nombre." para un 409 con `code: 'CATALOG_NAME_TAKEN'`,
+  pedido al backend. Cuando lo publique, hay que actualizar
+  `docs/openapi.json`.
+- **Bitácora — lista de acciones:** las 18 acciones se tomaron del tipo
+  cerrado `AuditAction` del backend (`api/src/audit/audit-action.type.ts`),
+  porque el OpenAPI declara `accion` como texto libre. Conviene que el
+  backend la publique como `enum` en el OpenAPI; si agrega una acción nueva,
+  el panel la muestra con su código hasta agregarla en `src/lib/audit.ts`.
+- **`GET /me` no trae `id`:** en Usuarios la fila propia se reconoce por
+  correo. Es solo comunicación; la API rechaza cambiar el estado propio.
+- **Filtro `usuario` de la bitácora:** es el ID numérico del usuario.

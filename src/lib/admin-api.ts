@@ -1,6 +1,14 @@
 import { api, ensureFreshToken } from './api';
 import { ApiError, MESSAGES, toApiError } from './errors';
 import type {
+  AdminCategory,
+  AdminPlatform,
+  AuditLogEntry,
+  AuditLogQuery,
+  CreateCategoryBody,
+  CreatePlatformBody,
+  UpdateCategoryBody,
+  UpdatePlatformBody,
   AdminReport,
   AdminReportDetail,
   AdminReportsQuery,
@@ -143,6 +151,75 @@ export async function deleteEvidence(
   evidenceId: number,
 ): Promise<void> {
   await api.delete(`/admin/reports/${reportId}/evidences/${evidenceId}`);
+}
+
+// ---------- Catálogos (sin DELETE: no se borran) ----------
+
+/** GET /admin/platforms — activas e inactivas. */
+export async function getAdminPlatforms(signal?: AbortSignal): Promise<AdminPlatform[]> {
+  const { data } = await api.get<AdminPlatform[]>('/admin/platforms', { signal });
+  return data;
+}
+
+/** POST /admin/platforms (201). */
+export async function createPlatform(body: CreatePlatformBody): Promise<AdminPlatform> {
+  const { data } = await api.post<AdminPlatform>('/admin/platforms', body);
+  return data;
+}
+
+/** PATCH /admin/platforms/:id — nombre y/o activa. La API no deja desactivar "Otra". */
+export async function updatePlatform(
+  id: number,
+  body: UpdatePlatformBody,
+): Promise<AdminPlatform> {
+  const { data } = await api.patch<AdminPlatform>(`/admin/platforms/${id}`, body);
+  return data;
+}
+
+/** GET /admin/categories — activas e inactivas. */
+export async function getAdminCategories(signal?: AbortSignal): Promise<AdminCategory[]> {
+  const { data } = await api.get<AdminCategory[]>('/admin/categories', { signal });
+  return data;
+}
+
+/** POST /admin/categories (201). */
+export async function createCategory(body: CreateCategoryBody): Promise<AdminCategory> {
+  const { data } = await api.post<AdminCategory>('/admin/categories', body);
+  return data;
+}
+
+/** PATCH /admin/categories/:id — nombre, descripción y/o activa. */
+export async function updateCategory(
+  id: number,
+  body: UpdateCategoryBody,
+): Promise<AdminCategory> {
+  const { data } = await api.patch<AdminCategory>(`/admin/categories/${id}`, body);
+  return data;
+}
+
+// ---------- Bitácora (solo lectura) ----------
+
+/**
+ * GET /admin/audit-log — paginada y filtrable. Solo se mandan los filtros
+ * con valor; `accion` se recorta a 60 caracteres (contrato).
+ */
+export async function getAuditLog(
+  query: AuditLogQuery,
+  signal?: AbortSignal,
+): Promise<Page<AuditLogEntry>> {
+  const params: AuditLogQuery = { page: query.page, limit: query.limit };
+  const accion = query.accion?.trim().slice(0, 60);
+  if (accion) params.accion = accion;
+  if (query.usuario && Number.isInteger(query.usuario) && query.usuario > 0) {
+    params.usuario = query.usuario;
+  }
+  if (query.desde) params.desde = query.desde;
+  if (query.hasta) params.hasta = query.hasta;
+  const { data } = await api.get<Page<AuditLogEntry>>('/admin/audit-log', {
+    params,
+    signal,
+  });
+  return data;
 }
 
 // ---------- Mi cuenta ----------
