@@ -1,12 +1,23 @@
 # Controles de seguridad del panel de administración
 
 Cada control del panel, el ataque concreto que previene, el capítulo de
-OWASP ASVS 5.0 al que corresponde y el archivo donde vive. Se actualiza en
-cada fase.
+OWASP ASVS 5.0 al que corresponde y el archivo donde vive, organizado por la
+fase en que se agregó (0 a 6).
 
-> **Pendiente (Fase 6):** aquí solo se cita el **capítulo** de ASVS 5.0. Los
-> números exactos de requisito (por ejemplo `V3.4.x`) se completan en la
-> Fase 6 contra el documento oficial, para no citar números de memoria.
+> **Sobre los requisitos de ASVS:** solo se cita el **capítulo** de ASVS 5.0
+> (V1 Encoding and Sanitization, V2 Validation and Business Logic, V3 Web
+> Frontend Security, V4 API and Web Service, V6 Authentication, V7 Session
+> Management, V8 Authorization, V12 Secure Communication, V13 Configuration,
+> V14 Data Protection, V15 Secure Coding and Architecture, V16 Security
+> Logging and Error Handling). Los números exactos de requisito (`V3.4.x`…)
+> **no se verificaron** contra el documento oficial y por eso no se citan:
+> se prefirió no inventar números.
+>
+> **Recordatorio de responsabilidades:** el panel es una aplicación de
+> cliente. La **autorización real la hace la API** en cada petición
+> (`RolesGuard` + 2FA); los controles del panel reducen la superficie de
+> ataque del navegador del admin y evitan errores, pero no protegen datos por
+> sí solos.
 
 ## Fase 0 — Plantilla
 
@@ -136,6 +147,55 @@ del equipo. Lugares:
 | Correo del nuevo admin con `autoComplete="off"` | Que el navegador rellene el correo del propio admin en la cuenta nueva | V2 Validation and Business Logic | `nuevo/page.tsx` |
 | Mensajes propios para `OWN_STATUS`, `LAST_ACTIVE_ADMIN`, `EMAIL_TAKEN`, `COMMENT_NOT_FLAGGED`, `INVALID_TOTP` | Nunca se muestra el `message` técnico del servidor | V16 Security Logging and Error Handling | `src/lib/errors.ts` |
 | Contador de comentarios por moderar en la barra lateral | Que haya contenido dañino oculto automáticamente sin revisar | — (operación) | `src/app/(panel)/layout.tsx` |
+
+## Fase 5 — Catálogos y bitácora
+
+| Control | Ataque que previene | ASVS 5.0 | Archivo |
+|---|---|---|---|
+| **Catálogos sin borrado**: solo activar/desactivar, y no existe ninguna función de borrado en `admin-api.ts` (prueba) | Que un error o una sesión robada destruya plataformas o categorías usadas por reportes existentes (integridad del historial) | V2 Validation and Business Logic | `src/app/(panel)/catalogos/page.tsx`, `src/lib/admin-api.ts` |
+| Plataforma **"Otra" bloqueada** (sin editar ni desactivar) en la interfaz; la API también rechaza desactivarla | Dejar a la app sin la opción "Otra" al crear reportes. El front solo comunica; **la API lo impone** | V8 Authorization · V2 Validation and Business Logic | `src/app/(panel)/catalogos/page.tsx` |
+| Confirmación al desactivar/activar con lo que pasa ("Ya no aparecerá al crear reportes…") | Desactivar por accidente | V2 Validation and Business Logic | `src/app/(panel)/catalogos/page.tsx` |
+| Nombre 1–100 y descripción ≤ 255 validados antes de enviar; tras guardar se vuelve a pedir la lista | Entradas fuera del contrato; mostrar datos que el servidor no confirmó | V2 Validation and Business Logic | `src/app/(panel)/catalogos/page.tsx` |
+| Nombre duplicado (409 `CATALOG_NAME_TAKEN`) → "Ya existe un elemento con ese nombre." | Mostrar el mensaje técnico de la base de datos (por ejemplo `Duplicate entry…`), que revela detalles internos | V16 Security Logging and Error Handling | `src/lib/errors.ts` |
+| Acciones de la bitácora con nombre en español (las 18 del backend) | Que el admin malinterprete un evento de seguridad (por ejemplo "Reuso de sesión detectado (posible robo)" o "Cuenta bloqueada…") | V16 Security Logging and Error Handling | `src/lib/audit.ts` |
+| **Bitácora de solo lectura** (no hay acciones de escritura) | Que el panel sirva para alterar la evidencia de auditoría | V16 Security Logging and Error Handling | `src/app/(panel)/bitacora/page.tsx` |
+| **Detalle de la bitácora como texto plano** (JSON en `<pre>`) | XSS almacenado a través de datos guardados en el detalle o el user-agent (un atacante controla su propio `User-Agent`) | V1 Encoding and Sanitization | `src/app/(panel)/bitacora/page.tsx`, `src/lib/audit.ts` |
+| **Datos sensibles ocultos** en el detalle: claves que parezcan contraseña, token, código, TOTP, captcha, hash, firma, cookie… se muestran como `[oculto]`, también anidadas | Que un secreto registrado por error en el backend quede a la vista de cualquier admin o en una captura de pantalla | V14 Data Protection · V16 Security Logging and Error Handling | `src/lib/audit.ts` |
+| Filtros (acción ≤ 60, ID de usuario numérico, fechas) en el estado de React; las fechas se convierten a ISO desde la hora de la CDMX | Que los filtros queden en el historial; parámetros fuera del contrato | V14 Data Protection · V2 Validation and Business Logic | `src/app/(panel)/bitacora/page.tsx`, `src/lib/audit.ts` |
+
+## Fase 6 — Calidad, dependencias y CI
+
+| Control | Ataque que previene | ASVS 5.0 | Archivo |
+|---|---|---|---|
+| **CI en cada push a `main` y cada PR**: `npm ci`, lint, pruebas, build y `npm audit --omit=dev --audit-level=high` | Integrar código que rompe controles probados (CSP, refresco, URLs seguras, TOTP…) o una dependencia de producción vulnerable | V15 Secure Coding and Architecture | `.github/workflows/ci.yml` |
+| `npm ci` con `package-lock.json` | **Ataques a la cadena de suministro** por versiones que cambian entre instalaciones: se instala exactamente lo revisado | V15 Secure Coding and Architecture | `.github/workflows/ci.yml` |
+| Workflow con `permissions: contents: read` y `persist-credentials: false` | Que un paso comprometido del CI use el token de GitHub para escribir en el repo | V15 Secure Coding and Architecture | `.github/workflows/ci.yml` |
+| **Dependabot** semanal (npm y GitHub Actions) | Dependencias o acciones con vulnerabilidades conocidas sin actualizar | V15 Secure Coding and Architecture | `.github/dependabot.yml` |
+| **CodeQL** (default setup del repositorio) | Patrones de código inseguros detectados por análisis estático | V15 Secure Coding and Architecture | configuración del repositorio en GitHub |
+| Pruebas unitarias de lectura de datos (sección 11) y de los controles (URLs, captcha, refresco, TOTP, bitácora) | Regresiones silenciosas en controles de seguridad | V15 Secure Coding and Architecture | `tests/` |
+
+### `braces` (Dependabot #1, GHSA-vfj7-8cjw-p6xm)
+
+- **Qué es:** *denial of service* por agotamiento de pila con patrones de
+  glob muy anidados en `braces`.
+- **De dónde viene:** `eslint-config-next` → `@next/eslint-plugin-next` →
+  `fast-glob` → `micromatch` → `braces`. Es **solo de desarrollo** (ESLint):
+  no se incluye en el sitio (`npm audit --omit=dev` = 0 vulnerabilidades).
+- **Por qué no se corrige con `overrides`:** el aviso oficial marca como
+  vulnerable `braces <= 3.0.3` con **`first_patched_version: null`** (no existe
+  versión corregida) y 3.0.3 es la última publicada. Un `override` solo puede
+  forzar una versión existente, y `micromatch`/`fast-glob` (incluso en su
+  última versión) dependen de `braces`. `npm audit fix --force` bajaría
+  `eslint-config-next` a la 14, incompatible con Next 16.
+- **Riesgo real:** bajo. El plugin de ESLint solo procesa patrones de la
+  propia configuración del proyecto (no datos de usuarios) y nunca corre en
+  producción.
+- **Decisión del equipo: riesgo aceptado.** La alerta se cerró en GitHub
+  como "riesgo tolerable", tras verificar en la página de la alerta que no
+  hay versión corregida. No se usan *forks* de `braces` (meterían un paquete
+  de terceros sin revisar: el mismo riesgo de cadena de suministro que se
+  busca evitar). Dependabot la reabre si se publica un parche. El CI audita
+  con `--omit=dev`, así que no falla por esto.
 
 ## Cómo comprobarlo
 

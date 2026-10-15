@@ -1,0 +1,135 @@
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+  gap: calc(var(--cs-space) * 1.5);
+  margin-bottom: calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 2);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+}
+
+.field {
+  display: grid;
+  gap: calc(var(--cs-space) / 2);
+  font-size: var(--cs-text-meta);
+  font-weight: 600;
+}
+
+.field input {
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 calc(var(--cs-space) * 1.5);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-surface);
+  font-weight: 400;
+}
+
+.filterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cs-space);
+}
+
+.ok {
+  color: var(--cs-success);
+  font-weight: 600;
+}
+
+.fail {
+  color: var(--cs-danger);
+  font-weight: 600;
+}
+
+.secondary {
+  color: var(--cs-text-secondary);
+}
+
+.mono {
+  font-family: var(--cs-font-mono);
+}
+
+.error {
+  margin: 0 0 calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 1.5) calc(var(--cs-space) * 2);
+  border: 1px solid var(--cs-danger);
+  border-radius: var(--cs-radius-card);
+  color: var(--cs-danger);
+  font-weight: 600;
+}
+
+/* ---------- Diálogo de detalle ---------- */
+
+.dialog {
+  width: min(820px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: calc(var(--cs-space) * 3);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-card);
+  background: var(--cs-surface);
+  color: var(--cs-text);
+}
+
+.dialog::backdrop {
+  background: var(--cs-backdrop);
+}
+
+.dialogTitle {
+  margin-bottom: calc(var(--cs-space) * 2);
+  overflow-wrap: break-word;
+}
+
+.dialogMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--cs-space) calc(var(--cs-space) * 2);
+  margin: 0 0 calc(var(--cs-space) * 2);
+}
+
+.dialogMeta dt {
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+}
+
+.dialogMeta dd {
+  margin: 0;
+  overflow-wrap: break-word;
+}
+
+.dialogSection {
+  margin: calc(var(--cs-space) * 2) 0 var(--cs-space);
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+  font-weight: 600;
+}
+
+/* Detalle como texto plano (JSON), legible y con scroll propio si es largo */
+.pre {
+  max-height: 50vh;
+  margin: 0;
+  padding: calc(var(--cs-space) * 1.5);
+  overflow: auto;
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-background);
+  font-family: var(--cs-font-mono);
+  font-size: var(--cs-text-meta);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.agent {
+  margin: 0;
+  font-family: var(--cs-font-mono);
+  font-size: var(--cs-text-meta);
+  overflow-wrap: break-word;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(var(--cs-space) * 3);
+}

@@ -40,6 +40,8 @@ const CODE_MESSAGES: Record<string, string> = {
   OWN_REPORT: 'No puedes revisar un reporte que tú creaste.',
   REPORT_NOT_EDITABLE: 'Este reporte ya fue revisado por otro administrador.',
   CATALOG_INACTIVE: 'Ese elemento del catálogo está desactivado.',
+  // 409 al crear/renombrar una plataforma o categoría con un nombre que ya existe
+  CATALOG_NAME_TAKEN: 'Ya existe un elemento con ese nombre.',
   // Fase 4 (moderación y usuarios)
   OWN_STATUS: 'No puedes cambiar el estado de tu propia cuenta.',
   LAST_ACTIVE_ADMIN:
