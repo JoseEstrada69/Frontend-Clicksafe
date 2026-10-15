@@ -1,0 +1,39 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--cs-space) * 2);
+}
+
+.newAdmin {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 calc(var(--cs-space) * 2.5);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-navy);
+  color: var(--cs-on-navy);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.self {
+  color: var(--cs-text-secondary);
+  font-size: var(--cs-text-meta);
+}
+
+.error {
+  margin: 0 0 calc(var(--cs-space) * 2);
+  padding: calc(var(--cs-space) * 1.5) calc(var(--cs-space) * 2);
+  border: 1px solid var(--cs-danger);
+  border-radius: var(--cs-radius-card);
+  color: var(--cs-danger);
+  font-weight: 600;
+}
+
+.dialogEmail {
+  margin: var(--cs-space) 0 0;
+  color: var(--cs-text-secondary);
+  overflow-wrap: break-word;
+}

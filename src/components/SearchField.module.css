@@ -1,0 +1,16 @@
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cs-space);
+  margin-bottom: calc(var(--cs-space) * 2);
+}
+
+.input {
+  flex: 1 1 260px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 calc(var(--cs-space) * 1.5);
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius-control);
+  background: var(--cs-surface);
+}

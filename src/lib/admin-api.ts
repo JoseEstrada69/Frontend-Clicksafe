@@ -1,14 +1,20 @@
-import { api, refreshSession } from './api';
-import { accessTokenExpiresSoon, getAccessToken } from './session';
+import { api, ensureFreshToken } from './api';
+import { ApiError, MESSAGES, toApiError } from './errors';
 import type {
   AdminReport,
   AdminReportDetail,
   AdminReportsQuery,
   AdminStats,
+  AdminUser,
+  AdminUsersQuery,
+  CreateAdminBody,
+  FlaggedComment,
   GenericMessage,
+  ModerateCommentBody,
   Page,
   ReviewDecision,
   ReviewReportBody,
+  UpdateUserStatusBody,
   CaptchaChallenge,
   ChangePasswordBody,
   ForgotPasswordBody,
@@ -161,9 +167,90 @@ export async function updateMe(body: UpdateMeBody): Promise<Me> {
  * fallar el cambio, se renueva ANTES de enviar si vence en menos de 1 minuto.
  */
 export async function changePassword(body: ChangePasswordBody): Promise<void> {
-  if (getAccessToken() && accessTokenExpiresSoon()) {
-    // Si la renovación falla, la contraseña no se envía
-    await refreshSession();
-  }
+  // Si la renovación falla, la contraseña no se envía
+  await ensureFreshToken();
   await api.patch('/me/password', body, { skipAuthRefresh: true });
+}
+
+// ---------- Moderación de comentarios ----------
+
+/** GET /admin/comments/flagged — ocultos automáticamente o con denuncias pendientes. */
+export async function getFlaggedComments(
+  signal?: AbortSignal,
+): Promise<FlaggedComment[]> {
+  const { data } = await api.get<FlaggedComment[]>('/admin/comments/flagged', {
+    signal,
+  });
+  return data;
+}
+
+/** PATCH /admin/comments/:id — `confirmar` (oculto_admin) o `restaurar` (visible). */
+export async function moderateComment(
+  id: number,
+  accion: ModerateCommentBody['accion'],
+): Promise<void> {
+  const body: ModerateCommentBody = { accion };
+  await api.patch(`/admin/comments/${id}`, body);
+}
+
+// ---------- Usuarios ----------
+
+export const USER_SEARCH_MAX = 100;
+
+/** Búsqueda: sin espacios sobrantes y nunca más de 100 caracteres (contrato). */
+export function normalizeUserSearch(q: string): string {
+  return q.trim().slice(0, USER_SEARCH_MAX);
+}
+
+/** GET /admin/users — paginado, búsqueda por nombre o correo. */
+export async function getAdminUsers(
+  query: AdminUsersQuery,
+  signal?: AbortSignal,
+): Promise<Page<AdminUser>> {
+  const params: AdminUsersQuery = { page: query.page, limit: query.limit };
+  const q = normalizeUserSearch(query.q ?? '');
+  if (q) params.q = q;
+  const { data } = await api.get<Page<AdminUser>>('/admin/users', {
+    params,
+    signal,
+  });
+  return data;
+}
+
+/** PATCH /admin/users/:id/status (204). Suspender cierra sus sesiones. */
+export async function updateUserStatus(id: number, activo: boolean): Promise<void> {
+  const body: UpdateUserStatusBody = { activo };
+  await api.patch(`/admin/users/${id}/status`, body);
+}
+
+// ---------- Administradores ----------
+
+/**
+ * POST /admin/admins (201). `totp` es el código ACTUAL del admin que crea
+ * (reautenticación). Va solo en esta petición: no se guarda en ningún lado.
+ * - TOTP incorrecto → 400 INVALID_TOTP.
+ * - Correo repetido → 409 EMAIL_TAKEN.
+ * - 401 → la cuenta del admin está bloqueada o no tiene 2FA: mensaje
+ *   genérico (no "Tu sesión expiró", ni detalles del bloqueo).
+ * Nunca refresca ni reintenta (reintentar reenviaría el código y contaría
+ * otro intento fallido); el token se renueva antes si está por vencer.
+ */
+export async function createAdmin(body: CreateAdminBody): Promise<AdminUser> {
+  await ensureFreshToken();
+  try {
+    const { data } = await api.post<AdminUser>('/admin/admins', body, {
+      skipAuthRefresh: true,
+    });
+    return data;
+  } catch (e) {
+    const error = toApiError(e);
+    if (error.status === 401) {
+      throw new ApiError({
+        status: 401,
+        requestId: error.requestId,
+        userMessage: MESSAGES.createAdminUnavailable,
+      });
+    }
+    throw error;
+  }
 }

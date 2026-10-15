@@ -205,6 +205,14 @@ export interface ReviewReportBody {
 
 // ---------- Moderación de comentarios ----------
 
+/** `FlagRefResponse`: una denuncia no resuelta, sin datos de quién denunció. */
+export interface FlagRef {
+  motivo: FlagReason;
+  /** Texto libre de quien denunció (máx. 255): se muestra como texto plano. */
+  detalle: string | null;
+  fecha: string;
+}
+
 /** `FlaggedCommentResponse` (GET /admin/comments/flagged). */
 export interface FlaggedComment {
   id: number;
@@ -214,6 +222,7 @@ export interface FlaggedComment {
   autor: AdminUserRef;
   reporteId: number;
   motivos: FlagReason[];
+  denuncias: FlagRef[];
   fechaCreacion: string;
 }
 
@@ -315,6 +324,8 @@ export interface AuditLogEntry {
   id: string;
   fecha: string;
   idUsuario: number | null;
+  /** null cuando el evento no tiene usuario asociado (p. ej. login con correo inexistente). */
+  usuario: AdminUserRef | null;
   accion: string;
   resultado: 'exito' | 'fallo';
   recursoTipo: string | null;

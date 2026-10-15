@@ -25,6 +25,9 @@ export const MESSAGES = {
   forgotSent: 'Si el correo está registrado, recibirás un código de 8 dígitos.',
   passwordUpdated: 'Contraseña actualizada. Inicia sesión.',
   captchaInvalid: 'No pudimos verificar la solicitud. Inténtalo de nuevo.',
+  // POST /admin/admins → 401 (cuenta bloqueada o sin 2FA): genérico a propósito
+  createAdminUnavailable:
+    'No pudimos crear el administrador en este momento. Inténtalo más tarde.',
 } as const;
 
 const CODE_MESSAGES: Record<string, string> = {
@@ -37,6 +40,16 @@ const CODE_MESSAGES: Record<string, string> = {
   OWN_REPORT: 'No puedes revisar un reporte que tú creaste.',
   REPORT_NOT_EDITABLE: 'Este reporte ya fue revisado por otro administrador.',
   CATALOG_INACTIVE: 'Ese elemento del catálogo está desactivado.',
+  // Fase 4 (moderación y usuarios)
+  OWN_STATUS: 'No puedes cambiar el estado de tu propia cuenta.',
+  LAST_ACTIVE_ADMIN:
+    'No se puede suspender: el sistema se quedaría sin administradores activos.',
+  EMAIL_TAKEN: 'Ya existe una cuenta con ese correo.',
+  COMMENT_NOT_FLAGGED:
+    'Este comentario ya fue moderado por otro administrador. Actualizamos la lista.',
+  // No dice si fue el código o un bloqueo de la cuenta
+  INVALID_TOTP:
+    'No pudimos confirmar tu identidad. Escribe el código que muestra ahora tu app de autenticación.',
 };
 
 const STATUS_MESSAGES: Record<number, string> = {

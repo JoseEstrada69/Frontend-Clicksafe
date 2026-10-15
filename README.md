@@ -200,6 +200,69 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
 - [ ] `/reportes/abc` y `/reportes/999999` muestran "No encontramos lo que
       buscas…".
 
+## Lista de verificación manual (moderación y usuarios)
+
+**Comentarios (W08)** — datos de demo: los comentarios del reporte
+**"[Demo moderación]"** (uno `oculto_auto`, uno visible con denuncias, uno con
+`<img src=x onerror=alert(1)>` y uno con una cadena larga sin espacios).
+
+- [ ] La barra lateral muestra el número de comentarios por moderar junto a
+      "Comentarios".
+- [ ] El comentario con `<img src=x onerror=alert(1)>` se ve como texto y no
+      aparece ninguna alerta. La cadena larga se parte sin salirse de la
+      tarjeta; las palabras normales no se cortan.
+- [ ] Cada tarjeta muestra estado ("Oculto automáticamente" / "Visible, con
+      denuncias"), número de denuncias, autor (nombre y correo), fecha y
+      "Ver reporte #N" (lleva al detalle de "[Demo moderación]").
+- [ ] **"Denuncias pendientes"** lista cada denuncia con su motivo, fecha y
+      detalle **como texto** ("Sin detalle." si no tiene). No aparece quién
+      denunció.
+- [ ] **"Confirmar ocultamiento"** dice que se avisará al autor;
+      **"Restaurar"** dice que no se avisará a nadie. Al aceptar aparece el
+      aviso de éxito, el comentario sale de la lista y el contador baja.
+- [ ] Moderar el mismo comentario desde dos pestañas: la segunda muestra
+      "Este comentario ya fue moderado por otro administrador. Actualizamos
+      la lista." y la lista actualizada.
+
+**Usuarios (W09)** — datos de demo: 23 usuarios `demo.usuario*`
+(`demo.usuario23` suspendido) y el segundo admin
+`demo.admin2@demo.clicksafe.local`.
+
+- [ ] La búsqueda por nombre o correo funciona al pulsar "Buscar" (no en cada
+      tecla), no pasa de 100 caracteres y **la URL no cambia**.
+- [ ] La paginación funciona y "Limpiar" vuelve a la lista completa.
+- [ ] Tu propia fila dice "Tu cuenta" y no tiene botones.
+- [ ] Buscar `demo.usuario23` lo muestra como **Suspendido** con el botón
+      "Reactivar".
+- [ ] **"Suspender"** pide confirmación con "Se cerrarán todas sus sesiones
+      de inmediato…". Con `demo.admin2` con sesión abierta en otro navegador,
+      al suspenderlo su siguiente acción lo saca del panel. **"Reactivar"**
+      (que avisa que sus sesiones anteriores no se recuperan) le devuelve el
+      acceso.
+- [ ] (Opcional) `LAST_ACTIVE_ADMIN` casi no se puede provocar desde el
+      panel: quien suspende siempre es un admin activo y no puede
+      suspenderse a sí mismo (`OWN_STATUS`). Solo ocurre si dos admins se
+      suspenden mutuamente al mismo tiempo (tu cuenta y `demo.admin2`, cada
+      uno en su navegador, confirmando a la vez): el segundo debe ver "No se
+      puede suspender: el sistema se quedaría sin administradores activos."
+      El mensaje está cubierto por las pruebas unitarias.
+
+**Nuevo administrador (W10)**
+
+- [ ] Sin nombre, con un correo inválido o con un código de menos de 6
+      dígitos, se avisa junto al campo y no se envía nada.
+- [ ] Pide confirmación mostrando nombre y correo.
+- [ ] Con un código **incorrecto** aparece "No pudimos confirmar tu
+      identidad…", el campo del código queda **vacío** y en la pestaña Red hay
+      **una sola** petición a `/api/v1/admin/admins` (sin `/auth/refresh`).
+- [ ] Con un código correcto aparece "Administrador creado. Le enviamos un
+      correo…", el formulario queda vacío y en Mailpit llega el código de
+      recuperación para la cuenta nueva.
+- [ ] Con un correo ya registrado (por ejemplo `demo.admin2@demo.clicksafe.local`)
+      aparece "Ya existe una cuenta con ese correo." y el código queda vacío.
+- [ ] En DevTools → Application no aparece el código en `sessionStorage` ni
+      `localStorage`.
+
 ## Pendientes conocidos
 
 - **`npm audit` reporta 5 vulnerabilidades altas** en `braces`
@@ -210,5 +273,8 @@ ten abierta la consola del navegador (no debe haber errores de `script-src`).
   sitio. No hay versión corregida de `braces`, y `npm audit fix --force`
   bajaría `eslint-config-next` a la 14, incompatible con Next 16, por lo que
   **no se debe ejecutar**. Se resuelve en la Fase 6.
-- **Diferencias pendientes para las fases 4 y 5:** `GET /me` no trae `id`;
-  la bitácora filtra por id de usuario y no trae su nombre.
+- **`GET /me` no trae `id`:** en Usuarios (W09) la fila propia se reconoce
+  por correo. Es solo comunicación; la API rechaza cambiar el estado propio.
+- **Bitácora (Fase 5):** cada entrada ya trae `usuario: { nombre, correo }`
+  (o `null` si el evento no tiene usuario, por ejemplo un login con un correo
+  inexistente); el filtro `usuario` sigue siendo el id numérico.
