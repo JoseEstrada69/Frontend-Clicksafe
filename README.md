@@ -130,6 +130,89 @@ Abre <http://localhost:3001>.
 Las siguientes veces solo se pide el código de la app después de la
 contraseña. Un usuario normal (no admin) no puede entrar al panel.
 
+## Despliegue en el laboratorio
+
+Escenario de la demo: el panel corre en una PC con Windows **sin Internet** y
+se abre en el navegador de esa misma PC; la API está en otra PC de la red
+aislada (por ejemplo `http://192.168.20.10:3000`), por HTTP y sin Nginx.
+
+### Antes de ir
+
+1. En tu PC, con Internet, deja la carpeta lista con las dependencias
+   exactas (mismo instalador de Node que en el laboratorio):
+
+   ```powershell
+   npm ci
+   ```
+
+2. Copia la carpeta completa (incluido `node_modules`) a la PC del
+   laboratorio. El build se hace allá (paso 2 de abajo): así queda con la
+   dirección correcta de la API y con la ruta de esa PC.
+
+> Recomendado: ensáyalo antes en tu PC con la red desconectada, copiando la
+> carpeta a otra ruta y apuntando a una API en otra IP.
+
+### En la PC del laboratorio
+
+Desde la carpeta del panel, en PowerShell:
+
+1. **Dirección de la API** en `.env.local`: solo `http://IP:puerto`,
+   **sin** `/api/v1` (el panel lo agrega; con `/api/v1` las rutas quedarían
+   duplicadas):
+
+   ```powershell
+   Set-Content -Encoding utf8 .env.local "API_PROXY_TARGET=http://192.168.20.10:3000"
+   ```
+
+   La dirección queda fijada **al compilar**: si cambia la IP de la API, hay
+   que volver a correr el paso 2.
+
+2. **Compilar ahí mismo** (no necesita Internet; se desactiva la telemetría
+   de Next para que no intente conectarse):
+
+   ```powershell
+   $env:NEXT_TELEMETRY_DISABLED = "1"
+   npm run build
+   ```
+
+3. **Arrancar solo para esta PC** (escucha en `127.0.0.1`: el panel no queda
+   expuesto a la red y Windows no pide abrir el firewall):
+
+   ```powershell
+   npx next start -p 3001 -H 127.0.0.1
+   ```
+
+4. **Abrir <http://localhost:3001> en Chrome o Edge.** Usa siempre
+   `localhost`, nunca la IP de la PC: el navegador solo trata `localhost`
+   como contexto seguro, y sin eso no funcionan el captcha (Web Crypto) ni el
+   botón "Copiar".
+
+### Requisitos de red
+
+- La PC del panel debe poder llegar a la API (`192.168.20.10:3000`): abre
+  ese puerto en el firewall de la PC de la API.
+- **No hace falta habilitar CORS en la API.** El navegador solo habla con
+  `localhost:3001` y el servidor de Next reenvía `/api/v1` a la API, así que
+  CORS debe seguir deshabilitado.
+
+### Avisos para la demo
+
+- **Reloj de la PC de la API (2FA):** el código TOTP depende de la hora. Si
+  la PC de la API (sin Internet) tiene el reloj desfasado más de unos 30
+  segundos respecto al celular con la app de autenticación, **la
+  verificación en dos pasos falla**. Revisa y ajusta su hora al segundo
+  antes de la demo.
+- **Cierre por inactividad:** tras **15 minutos** sin usar el panel (mouse,
+  teclado o scroll) se cierra la sesión; un minuto antes aparece el aviso
+  "¿Sigues ahí?" con el botón **"Seguir conectado"**. Es un control de
+  seguridad intencional: si se cierra durante la demo, vuelve a iniciar
+  sesión.
+- **Para mostrar el QR del 2FA** se necesita un admin que todavía no lo haya
+  configurado (por ejemplo, el recién creado con `npm run seed:admin` en una
+  base limpia; su contraseña solo aparece una vez en la consola).
+- **Para validar o rechazar** hace falta un reporte pendiente que no haya
+  creado el mismo admin (`npm run seed:demo` los crea).
+
 ## Cómo se conecta con la API
 
 El navegador nunca habla directo con el backend. El panel pide todo a
