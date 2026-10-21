@@ -6,8 +6,8 @@ reportar publicaciones sospechosas de fraude en tiendas en línea
 y TypeScript. Socio formador: Red por la Ciberseguridad. Objetivo de
 seguridad: OWASP ASVS nivel 2.
 
-Las reglas de trabajo, de seguridad y de diseño están en
-[`CLAUDE.md`](CLAUDE.md); cada control de seguridad, el ataque que previene y
+El diseño, el modelo de seguridad y las decisiones técnicas están en el
+[`MANUAL.md`](MANUAL.md); cada control de seguridad, el ataque que previene y
 dónde vive, en [`docs/seguridad.md`](docs/seguridad.md).
 
 ## Qué hace

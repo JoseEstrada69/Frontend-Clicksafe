@@ -29,3 +29,9 @@ Thumbs.db
 
 # Logs
 npm-debug.log*
+
+# Archivos de contexto para asistentes de IA. La documentación del proyecto
+# vive en MANUAL.md; CLAUDE.md se conserva solo en local (y `next dev` puede
+# regenerarlo sin que reaparezca en el repositorio).
+CLAUDE.md
+AGENTS.md
